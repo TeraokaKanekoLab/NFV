@@ -1,17 +1,23 @@
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #define MAX_PAYLOAD 1024
+#define NETLINK_USER 31
 
 struct sockaddr_nl src_addr, dest_addr;
-struct nlmsghdr *nhl = NULL;
+struct nlmsghdr *nlh = NULL;
 struct iovec iov;
 int sock;
 struct msghdr msg;
 
-void main()
+int main()
 {
   if ((sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER)) < 0) {
-    reutrn -1;
+    return -1;
   }
 
   memset(&src_addr, 0, sizeof(struct sockaddr_nl));
@@ -35,7 +41,8 @@ void main()
   
   iov.iov_base = (void *)nlh;
   iov.iov_len = nlh->nlmsg_len;
-  msg.msg_name = sizeof(struct sockaddr_nl);
+  msg.msg_name = (void *)&dest_addr;
+  msg.msg_namelen = sizeof(struct sockaddr_nl);
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
 
@@ -45,7 +52,7 @@ void main()
 
   /* Read message from kernel */
   recvmsg(sock, &msg, 0);
-  printf("received message payload: %s\n", NLMSG_DATA(nlh));
+  printf("received message payload: %s\n", (char *)NLMSG_DATA(nlh));
   close(sock);
 
 }

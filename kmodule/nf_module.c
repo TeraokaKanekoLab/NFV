@@ -1,3 +1,4 @@
+#include <uapi/linux/pkt_cls.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>  
@@ -7,6 +8,7 @@
 #include <asm/types.h>  
 #include <linux/netlink.h>  
 #include <linux/skbuff.h>
+#define NETLINK_USER 31
 
 struct sock *nl_sk = NULL;
 
