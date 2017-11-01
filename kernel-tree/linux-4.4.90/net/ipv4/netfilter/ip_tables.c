@@ -300,6 +300,7 @@ ipt_do_table(struct sk_buff *skb,
 	const struct xt_table_info *private;
 	struct xt_action_param acpar;
 	unsigned int addend;
+  struct list_head *i;
 
 	/* Initialization */
 	stackidx = 0;
@@ -382,8 +383,20 @@ ipt_do_table(struct sk_buff *skb,
 			trace_packet(state->net, skb, hook, state->in,
 				     state->out, table->name, private, e);
 #endif
-		/* Standard target? */
-		if (!t->u.kernel.target->target) {
+    
+    /* Network funciton target? */
+    if (!t->u.kernel.target) {
+      /* iterate all the nf targets in the list */
+      i = target_head.next;
+      do {
+        t_verdict = ((struct nf_target *)i)->nf_func(skb);
+        if (t_verdict == DROP) {
+          break;
+        } else {
+          i = i->next;
+        }
+      } while (i != &target_head)
+    } else if (!t->u.kernel.target->target) { /* Standard target? */
 			int v;
 
 			v = ((struct xt_standard_target *)t)->verdict;
