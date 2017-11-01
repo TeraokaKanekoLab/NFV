@@ -386,6 +386,7 @@ ipt_do_table(struct sk_buff *skb,
     
     /* Network funciton target? */
     if (!t->u.kernel.target) {
+      printk(KERN_INFO "Entering nf target iteration loop");
       /* iterate all the nf targets in the list */
       i = target_head.next;
       do {
@@ -430,17 +431,22 @@ ipt_do_table(struct sk_buff *skb,
 			continue;
 		}
 
-		acpar.target   = t->u.kernel.target;
-		acpar.targinfo = t->data;
+    if (!t->u.kernel.target) {
+      verdict = t_verdict; 
+      break;
+    } else {
+      acpar.target   = t->u.kernel.target;
+      acpar.targinfo = t->data;
 
-		verdict = t->u.kernel.target->target(skb, &acpar);
-		/* Target might have changed stuff. */
-		ip = ip_hdr(skb);
-		if (verdict == XT_CONTINUE)
-			e = ipt_next_entry(e);
-		else
-			/* Verdict */
-			break;
+      verdict = t->u.kernel.target->target(skb, &acpar);
+      /* Target might have changed stuff. */
+      ip = ip_hdr(skb);
+      if (verdict == XT_CONTINUE)
+        e = ipt_next_entry(e);
+      else
+        /* Verdict */
+        break;
+    }
 	} while (!acpar.hotdrop);
 	pr_debug("Exiting %s; sp at %u\n", __func__, stackidx);
 

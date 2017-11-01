@@ -3,7 +3,8 @@
 #include <linux/skbuff.h>
 #include <linux/if_arp.h>
 #include <linux/ip.h>
-#include "network_function.h"
+#include <linux/types.h>
+#include <net/netfilter/network_function.h>
 
 /* Important: target_head is the head of the nf target list */
 static struct list_head target_head;
