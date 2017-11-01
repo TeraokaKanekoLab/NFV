@@ -7,7 +7,7 @@
 #include <net/netfilter/network_function.h>
 
 /* Important: target_head is the head of the nf target list */
-static struct list_head target_head;
+struct list_head target_head;
 
 void init_target_list(struct list_head * i)
 {

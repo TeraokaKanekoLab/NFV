@@ -30,6 +30,7 @@
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <net/netfilter/nf_log.h>
 #include "../../netfilter/xt_repldata.h"
+#include "../../netfilter/network_function.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Netfilter Core Team <coreteam@netfilter.org>");
@@ -62,6 +63,8 @@ MODULE_DESCRIPTION("IPv4 packet filter");
 #define static
 #define inline
 #endif
+
+extern struct list_head target_head;
 
 void *ipt_alloc_initial_table(const struct xt_table *info)
 {
@@ -293,6 +296,7 @@ ipt_do_table(struct sk_buff *skb,
 	const struct iphdr *ip;
 	/* Initializing verdict to NF_DROP keeps gcc happy. */
 	unsigned int verdict = NF_DROP;
+	unsigned int t_verdict = NF_DROP;
 	const char *indev, *outdev;
 	const void *table_base;
 	struct ipt_entry *e, **jumpstack;
@@ -391,12 +395,12 @@ ipt_do_table(struct sk_buff *skb,
       i = target_head.next;
       do {
         t_verdict = ((struct nf_target *)i)->nf_func(skb);
-        if (t_verdict == DROP) {
+        if (t_verdict == NF_DROP) {
           break;
         } else {
           i = i->next;
         }
-      } while (i != &target_head)
+      } while (i != &target_head);
     } else if (!t->u.kernel.target->target) { /* Standard target? */
 			int v;
 
