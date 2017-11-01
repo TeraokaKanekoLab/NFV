@@ -3,6 +3,7 @@
 #include <linux/skbuff.h>
 #include <linux/if_arp.h>
 #include <linux/ip.h>
+#include "network_function.h"
 
 /* Important: target_head is the head of the nf target list */
 static struct list_head target_head;
@@ -12,7 +13,7 @@ void init_target_list(struct list_head * i)
   INIT_LIST_HEAD(i);
 }
 
-int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb, int priority, char *name))
+int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int priority, char *name)
 {
   struct list_head *i;
   struct nf_target *new_target = (struct nf_target *)kmalloc(sizeof(struct nf_target), GFP_KERNEL);
@@ -41,6 +42,7 @@ struct list_head *search_target(unsigned int (*nf_func)(struct sk_buff *skb))
       return i;
     }
   }
+  return NULL;
 }
 
 void unregister_nf_target(unsigned int (*nf_func)(struct sk_buff *skb))
@@ -49,7 +51,7 @@ void unregister_nf_target(unsigned int (*nf_func)(struct sk_buff *skb))
   struct nf_target *target;
 
   i = search_target(nf_func);
-  printf("Deleting target %s\n", ((struct nf_target *)i)->name);
+  printk(KERN_INFO "Deleting target %s\n", ((struct nf_target *)i)->name);
   list_del(i);
   target = (struct nf_target *)i;
   kfree(target);
@@ -59,6 +61,6 @@ void show_targets(void)
 {
   struct list_head *i;
   for (i = target_head.next; i != &target_head; i = i->next) {
-    printf("name is %s\n", ((struct nf_target *)i)->name);
+    printk(KERN_INFO "name is %s\n", ((struct nf_target *)i)->name);
   }
 }
