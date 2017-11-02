@@ -64,7 +64,7 @@ MODULE_DESCRIPTION("IPv4 packet filter");
 #define inline
 #endif
 
-extern struct list_head target_head;
+struct list_head target_head;
 
 void *ipt_alloc_initial_table(const struct xt_table *info)
 {
