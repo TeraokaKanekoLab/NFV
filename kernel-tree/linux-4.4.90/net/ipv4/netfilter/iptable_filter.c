@@ -20,7 +20,8 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Netfilter Core Team <coreteam@netfilter.org>");
 MODULE_DESCRIPTION("iptables filter table");
 
-#define FILTER_VALID_HOOKS ((1 << NF_INET_LOCAL_IN) | \
+#define FILTER_VALID_HOOKS ((1 << NF_INET_PRE_ROUTING) | \
+    (1 << NF_INET_LOCAL_IN) | \
 			    (1 << NF_INET_FORWARD) | \
 			    (1 << NF_INET_LOCAL_OUT))
 

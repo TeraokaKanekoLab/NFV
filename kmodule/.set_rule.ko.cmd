@@ -1,0 +1,1 @@
+cmd_/home/hannah/nfv/kmodule/set_rule.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/hannah/nfv/kmodule/set_rule.ko /home/hannah/nfv/kmodule/set_rule.o /home/hannah/nfv/kmodule/set_rule.mod.o
