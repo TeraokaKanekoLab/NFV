@@ -65,7 +65,11 @@ MODULE_DESCRIPTION("IPv4 packet filter");
 #endif
 
 struct list_head target_head;
-EXPORT_SYMBOL(target_head);
+struct list_head *get_target_head(void)
+{
+  return &target_head;
+}
+EXPORT_SYMBOL(get_target_head);
 
 void *ipt_alloc_initial_table(const struct xt_table *info)
 {
