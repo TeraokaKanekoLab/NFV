@@ -11,14 +11,15 @@ unsigned int nf1_func(struct sk_buff *skb)
   return 0;
 }
 
-static int __init nf1_tg_init(void)
+static void __init nf1_tg_init(void)
 {
-  return register_nf_target(nf1_func, -100, "NF1");
+  /* return register_nf_target(nf1_func, -100, "NF1"); */
+  printk(KERN_INFO "Kernel module NF1 is inserted\n");
 }
 
 static void __exit nf1_tg_exit(void)
 {
-  unregister_nf_target(nf1_func);
+  printk(KERN_INFO "Kernel module NF1 is removed\n");
 }
 
 module_init(nf1_tg_init);
