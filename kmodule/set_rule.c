@@ -1,21 +1,29 @@
 #include <uapi/linux/pkt_cls.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/init.h>  
-#include <net/sock.h>  
-#include <linux/socket.h>  
-#include <linux/net.h>  
-#include <asm/types.h>  
-#include <linux/netlink.h>  
+#include <linux/init.h>
+#include <net/sock.h>
+#include <linux/socket.h>
+#include <linux/net.h>
+#include <asm/types.h>
+#include <linux/netlink.h>
 #include <linux/skbuff.h>
 #include <net/net_namespace.h>
 #include <linux/user_namespace.h>
-#include <uapi/linux/netfilter/xt_tcpudl.h>
-#include <uapi/linux/netfilter.h>
 #include <linux/netfilter/x_tables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
+#include <uapi/linux/netfilter/xt_tcpudp.h>
+#include <uapi/linux/netfilter.h>
 #include <net/netfilter/nf_log.h>
 #define NETLINK_USER 31
+
+#define IPT_MIN_ALIGN (__alignof__(struct ipt_entry))
+#define IPT_ALIGN(s) (((s) + ((IPT_MIN_ALIGN)-1)) & ~((IPT_MIN_ALIGN)-1))
+#define ipt_entry_match xt_entry_match
+#define ipt_entry_target xt_entry_target
+#define ipt_udp xt_udp
+
+extern __be32 in_aton(const char *str);
 
 struct sock *nl_sk = NULL;
 
@@ -30,7 +38,6 @@ int set_rule(struct net *net)
   struct ipt_entry_target * target;
   struct ipt_udp * udpinfo;
   unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target,size_ipt_udp, total_length;
-  int err;
 
   size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
   size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
@@ -43,20 +50,21 @@ int set_rule(struct net *net)
   private = table->private;
   table_base = private->entries;
 
-  e = get_entry(table_base, private->hook_entry[hook]); /* return (struct ipt_entry *)(base + offset) */
+  e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
   e = kmalloc(total_length, GFP_KERNEL);
   if (e == NULL) {
-    printk(KERN_ERR "Failed to allocate memory");
+	  printk(KERN_ERR "Failed to allocate memory");
     return -1;
   }
   e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_udp;
   e->next_offset = total_length;
 
   /* Set matching rules: "-s 156.145.1.3. -d 168.200.1.9" */
-  e->ip.src.s_addr = inet_addr("156.145.1.3");
-  e->ip.smsk.s_addr= inet_addr("255.255.255.255");
-  e->ip.dst.s_addr = inet_addr("168.220.1.9");
-  e->ip.dmsk.s_addr= inet_addr("255.255.255.255");
+  e->ip.src.s_addr = in_aton("192.168.1.1");
+  e->ip.smsk.s_addr= in_aton("255.255.255.0");
+  /*
+  e->ip.dst.s_addr = in_aton("168.220.1.9");
+  e->ip.dmsk.s_addr= in_aton("255.255.255.255"); */
   e->ip.proto = IPPROTO_UDP;
   e->nfcache = 0;
 
@@ -88,6 +96,7 @@ static void init_rule(struct sk_buff *skb)
   char *msg = "I have set the rules";
   int res;
   struct net *net;
+  int err;
 
   net = current->nsproxy->net_ns;
   printk(KERN_INFO "ns_common's inum is %u\n", net->ns.inum);
