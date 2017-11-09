@@ -24,6 +24,9 @@
 #define ipt_udp xt_udp
 
 extern __be32 in_aton(const char *str);
+extern unsigned int nf1_func(struct sk_buff *skb);
+extern int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int priority, char *name);
+extern struct list_head target_head;
 
 struct sock *nl_sk = NULL;
 
@@ -81,7 +84,7 @@ int set_rule(struct net *net)
   /* ipt_entry_target struct */
   target = (struct ipt_entry_target *)(e->elems + size_ipt_entry_match + size_ipt_udp);
   target->u.target_size = size_ipt_entry_target;
-  target->u.kernel.nf_targets->nf_target_num++;
+  //(target->u.kernel.nf_targets->nf_target_num)++;
 
   /* Insert nf_target struct to the list */
   return register_nf_target(nf1_func, -100, "NF1");

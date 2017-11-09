@@ -8,6 +8,7 @@
 
 /* Important: target_head is the head of the nf target list */
 extern struct list_head target_head;
+//extern struct list_head *get_target_head(void);
 
 void init_target_list(struct list_head * i)
 {
@@ -34,6 +35,7 @@ int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int priorit
   list_add(&new_target->list, i->prev);
   return 0;
 }
+EXPORT_SYMBOL(register_nf_target);
 
 struct list_head *search_target(unsigned int (*nf_func)(struct sk_buff *skb))
 {
@@ -65,3 +67,20 @@ void show_targets(void)
     printk(KERN_INFO "name is %s\n", ((struct nf_target *)i)->name);
   }
 }
+
+static int __init nf_init(void)
+{
+  printk(KERN_INFO "Entering network_function module\n");
+  init_target_list(&target_head);
+  return 0;
+}
+
+static void __exit nf_exit(void)
+{
+  printk(KERN_INFO "Goodbye, network_function module\n");
+}
+
+module_init(nf_init);
+module_exit(nf_exit);
+
+MODULE_LICENSE("GPL");
