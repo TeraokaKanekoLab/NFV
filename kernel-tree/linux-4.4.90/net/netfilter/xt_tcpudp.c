@@ -68,6 +68,7 @@ static bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	struct tcphdr _tcph;
 	const struct xt_tcp *tcpinfo = par->matchinfo;
 
+	printk(KERN_INFO "Checking for TCP xt_entry_match\n");	
 	if (par->fragoff != 0) {
 		/* To quote Alan:
 
@@ -134,6 +135,7 @@ static bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	struct udphdr _udph;
 	const struct xt_udp *udpinfo = par->matchinfo;
 
+	printk(KERN_INFO "Checking for UDP xt_entry_match\n");	
 	/* Must not be a fragment. */
 	if (par->fragoff != 0)
 		return false;

@@ -180,6 +180,7 @@ static inline int nf_hook_thresh(u_int8_t pf, unsigned int hook,
 	struct list_head *hook_list = &net->nf.hooks[pf][hook];
 
 	if (nf_hook_list_active(hook_list, pf, hook)) {
+		printk(KERN_INFO "At nf_hook_thresh function, inside if\n");
 		struct nf_hook_state state;
 
 		nf_hook_state_init(&state, hook_list, hook, thresh,

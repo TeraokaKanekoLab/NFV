@@ -65,6 +65,8 @@ MODULE_DESCRIPTION("IPv4 packet filter");
 #endif
 
 struct list_head target_head;
+EXPORT_SYMBOL(target_head);
+
 struct list_head *get_target_head(void)
 {
   return &target_head;
@@ -94,12 +96,12 @@ ip_packet_match(const struct iphdr *ip,
 		  IPT_INV_SRCIP) ||
 	    FWINV((ip->daddr&ipinfo->dmsk.s_addr) != ipinfo->dst.s_addr,
 		  IPT_INV_DSTIP)) {
-		dprintf("Source or dest mismatch.\n");
+		printk(KERN_INFO "Source or dest mismatch.\n");
 
-		dprintf("SRC: %pI4. Mask: %pI4. Target: %pI4.%s\n",
+		printk(KERN_INFO "SKB's SRC: %pI4. Rule's Mask: %pI4. Rule's SRC: %pI4.%s\n",
 			&ip->saddr, &ipinfo->smsk.s_addr, &ipinfo->src.s_addr,
 			ipinfo->invflags & IPT_INV_SRCIP ? " (INV)" : "");
-		dprintf("DST: %pI4 Mask: %pI4 Target: %pI4.%s\n",
+		printk(KERN_INFO "SKB's DST: %pI4 Rule's Mask: %pI4 Rule's DST: %pI4.%s\n",
 			&ip->daddr, &ipinfo->dmsk.s_addr, &ipinfo->dst.s_addr,
 			ipinfo->invflags & IPT_INV_DSTIP ? " (INV)" : "");
 		return false;
@@ -108,7 +110,7 @@ ip_packet_match(const struct iphdr *ip,
 	ret = ifname_compare_aligned(indev, ipinfo->iniface, ipinfo->iniface_mask);
 
 	if (FWINV(ret != 0, IPT_INV_VIA_IN)) {
-		dprintf("VIA in mismatch (%s vs %s).%s\n",
+		printk(KERN_INFO "VIA in mismatch (%s vs %s).%s\n",
 			indev, ipinfo->iniface,
 			ipinfo->invflags & IPT_INV_VIA_IN ? " (INV)" : "");
 		return false;
@@ -117,7 +119,7 @@ ip_packet_match(const struct iphdr *ip,
 	ret = ifname_compare_aligned(outdev, ipinfo->outiface, ipinfo->outiface_mask);
 
 	if (FWINV(ret != 0, IPT_INV_VIA_OUT)) {
-		dprintf("VIA out mismatch (%s vs %s).%s\n",
+		printk(KERN_INFO "VIA out mismatch (%s vs %s).%s\n",
 			outdev, ipinfo->outiface,
 			ipinfo->invflags & IPT_INV_VIA_OUT ? " (INV)" : "");
 		return false;
@@ -126,7 +128,7 @@ ip_packet_match(const struct iphdr *ip,
 	/* Check specific protocol */
 	if (ipinfo->proto &&
 	    FWINV(ip->protocol != ipinfo->proto, IPT_INV_PROTO)) {
-		dprintf("Packet protocol %hi does not match %hi.%s\n",
+		printk(KERN_INFO "Packet protocol %hi does not match %hi.%s\n",
 			ip->protocol, ipinfo->proto,
 			ipinfo->invflags & IPT_INV_PROTO ? " (INV)" : "");
 		return false;
@@ -135,7 +137,7 @@ ip_packet_match(const struct iphdr *ip,
 	/* If we have a fragment rule but the packet is not a fragment
 	 * then we return zero */
 	if (FWINV((ipinfo->flags&IPT_F_FRAG) && !isfrag, IPT_INV_FRAG)) {
-		dprintf("Fragment rule but not fragment.%s\n",
+		printk(KERN_INFO "Fragment rule but not fragment.%s\n",
 			ipinfo->invflags & IPT_INV_FRAG ? " (INV)" : "");
 		return false;
 	}
@@ -310,6 +312,11 @@ ipt_do_table(struct sk_buff *skb,
 	struct xt_action_param acpar;
 	unsigned int addend;
   struct list_head *i;
+  struct net *net;
+
+  net = state->net;
+  printk(KERN_INFO "hook is %u\n", hook);
+  printk(KERN_INFO "ns_common's inum is %u\n", net->ns.inum);
 
 	/* Initialization */
 	stackidx = 0;
@@ -344,6 +351,8 @@ ipt_do_table(struct sk_buff *skb,
 	table_base = private->entries;
 	jumpstack  = (struct ipt_entry **)private->jumpstack[cpu];
 
+  printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
+
 	/* Switch to alternate jumpstack if we're being invoked via TEE.
 	 * TEE issues XT_CONTINUE verdict on original skb so we must not
 	 * clobber the jumpstack.
@@ -368,8 +377,10 @@ ipt_do_table(struct sk_buff *skb,
 		IP_NF_ASSERT(e);
 		if (!ip_packet_match(ip, indev, outdev,
 		    &e->ip, acpar.fragoff)) {
+			printk(KERN_INFO "No match in ipt_entry(ip)\n");
  no_match:
 			e = ipt_next_entry(e);
+			printk(KERN_INFO "Go to next ipt_entry\n");
 			continue;
 		}
 
@@ -377,6 +388,8 @@ ipt_do_table(struct sk_buff *skb,
 			acpar.match     = ematch->u.kernel.match;
 			acpar.matchinfo = ematch->data;
 			if (!acpar.match->match(skb, &acpar))
+				printk(KERN_INFO "No match in xt_entry_match\n");
+				printk(KERN_INFO "So, go to next ipt_entry\n");
 				goto no_match;
 		}
 
@@ -385,6 +398,7 @@ ipt_do_table(struct sk_buff *skb,
 
 		t = ipt_get_target(e);
 		IP_NF_ASSERT(t->u.kernel.target);
+		printk(KERN_INFO "A rule (5 tuple) matched!\n");
 
 #if IS_ENABLED(CONFIG_NETFILTER_XT_TARGET_TRACE)
 		/* The packet is traced: log it */
@@ -400,6 +414,7 @@ ipt_do_table(struct sk_buff *skb,
       i = target_head.next;
       do {
         t_verdict = ((struct nf_target *)i)->nf_func(skb);
+        printk(KERN_INFO "t_verdict is %u\n", t_verdict);
         if (t_verdict == NF_DROP) {
           break;
         } else {
