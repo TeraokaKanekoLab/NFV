@@ -76,7 +76,8 @@ int set_rule(struct net *net)
   match_proto = (struct ipt_entry_match *)e->elems;
   match_proto->u.match_size = size_ipt_entry_match + size_ipt_udp;
   strcpy(match_proto->u.user.name, "udp");
-  // match_proto->u.kernel.match->match = upd_mt;
+
+  match_proto->u.kernel.match->match = upd_mt;
 
   /* UDP match extenstion */
   udpinfo = (struct ipt_udp *)match_proto->data;

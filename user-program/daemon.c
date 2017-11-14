@@ -21,7 +21,6 @@ int main()
   struct in_addr src, smsk;
   src.s_addr = inet_addr("156.145.1.3");
   smsk.s_addr = inet_addr("255.255.255.255");
-
   if ((sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER)) < 0) {
     return -1;
   }
@@ -43,8 +42,7 @@ int main()
   nlh->nlmsg_pid = getpid();
   nlh->nlmsg_flags = 0;
 
-  /* strcpy(NLMSG_DATA(nlh), "Hello\n"); */
-  strncpy(NLMSG_DATA(nlh), (char *)&src.s_addr, sizeof(struct in_addr));
+  strcpy(NLMSG_DATA(nlh), "Hello\n");
   
   iov.iov_base = (void *)nlh;
   iov.iov_len = nlh->nlmsg_len;
