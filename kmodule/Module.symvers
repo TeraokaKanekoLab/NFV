@@ -1,0 +1,3 @@
+0x00000000	register_nf_target	/home/hannah/nfv/kmodule/network_function	EXPORT_SYMBOL
+0x00000000	udp_mt	/home/hannah/nfv/kmodule/xt_tcpudp	EXPORT_SYMBOL
+0x4cc30cca	nf1_func	/home/hannah/nfv/kmodule/xt_NF1	EXPORT_SYMBOL

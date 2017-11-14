@@ -1,0 +1,1 @@
+cmd_/home/hannah/nfv/kmodule/network_function.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/hannah/nfv/kmodule/network_function.ko /home/hannah/nfv/kmodule/network_function.o /home/hannah/nfv/kmodule/network_function.mod.o

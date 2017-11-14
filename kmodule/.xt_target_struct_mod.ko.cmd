@@ -1,0 +1,1 @@
+cmd_/home/hannah/nfv/kmodule/xt_target_struct_mod.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/hannah/nfv/kmodule/xt_target_struct_mod.ko /home/hannah/nfv/kmodule/xt_target_struct_mod.o /home/hannah/nfv/kmodule/xt_target_struct_mod.mod.o

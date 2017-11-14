@@ -1,0 +1,1 @@
+cmd_/home/hannah/nfv/kmodule/jiffies_test.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/hannah/nfv/kmodule/jiffies_test.ko /home/hannah/nfv/kmodule/jiffies_test.o /home/hannah/nfv/kmodule/jiffies_test.mod.o
