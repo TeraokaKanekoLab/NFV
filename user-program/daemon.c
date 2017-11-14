@@ -18,9 +18,6 @@ struct msghdr msg;
 
 int main()
 {
-  struct in_addr src, smsk;
-  src.s_addr = inet_addr("156.145.1.3");
-  smsk.s_addr = inet_addr("255.255.255.255");
   if ((sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER)) < 0) {
     return -1;
   }
