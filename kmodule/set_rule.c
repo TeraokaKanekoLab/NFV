@@ -26,7 +26,7 @@
 extern __be32 in_aton(const char *str);
 extern unsigned int nf1_func(struct sk_buff *skb);
 extern int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int priority, char *name);
-extern static bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par);
+extern bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern struct list_head target_head;
 
 struct sock *nl_sk = NULL;
@@ -48,18 +48,24 @@ int set_rule(struct net *net)
   size_ipt_entry_target = IPT_ALIGN(sizeof(struct ipt_entry_target));
   size_ipt_udp = IPT_ALIGN(sizeof(struct ipt_udp));
 
-  total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_entry_target;
+  total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
 
   table = net->ipv4.iptable_filter;
   private = table->private;
   table_base = private->entries;
+ 
+  printk(KERN_INFO "hook number is %d\n", hook);
+  printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
+  printk(KERN_INFO "address of table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
 
-  e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
+  //e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
   e = kmalloc(total_length, GFP_KERNEL);
   if (e == NULL) {
 	  printk(KERN_ERR "Failed to allocate memory");
     return -1;
   }
+  printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
+
   e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_udp;
   e->next_offset = total_length;
 
@@ -77,7 +83,7 @@ int set_rule(struct net *net)
   match_proto->u.match_size = size_ipt_entry_match + size_ipt_udp;
   strcpy(match_proto->u.user.name, "udp");
 
-  match_proto->u.kernel.match->match = upd_mt;
+  match_proto->u.kernel.match->match = udp_mt;
 
   /* UDP match extenstion */
   udpinfo = (struct ipt_udp *)match_proto->data;
@@ -89,9 +95,12 @@ int set_rule(struct net *net)
 
   /* ipt_entry_target struct */
   target = (struct ipt_entry_target *)(e->elems + size_ipt_entry_match + size_ipt_udp);
+  printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
   target->u.target_size = size_ipt_entry_target;
   //(target->u.kernel.nf_targets->nf_target_num)++;
+  //target->u.kernel.nf_targets->nf_target_num = 1;
 
+  //memcpy(table_base + private->hook_entry[hook], e, total_length);
   /* Insert nf_target struct to the list */
   return register_nf_target(nf1_func, -100, "NF1");
 }
