@@ -31,34 +31,37 @@ extern struct list_head target_head;
 
 struct sock *nl_sk = NULL;
 
-int set_rule(struct net *net)
+int set_rule1(struct net *net)
 {
   unsigned int hook = NF_INET_PRE_ROUTING;
   struct xt_table *table;
   struct xt_table_info *private;
   const void *table_base;
-  struct ipt_entry *e, *last_e;
+  struct ipt_entry *e, *old_e;
   struct ipt_entry_match * match_proto;
   struct ipt_entry_target * target;
   struct ipt_udp * udpinfo;
-  unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target,size_ipt_udp, total_length, total_length1;
+  unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target,size_ipt_udp, total_length, total_length1, target_offset, next_offset;
 
   size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
   size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
   size_ipt_entry_target = IPT_ALIGN(sizeof(struct ipt_entry_target));
   size_ipt_udp = IPT_ALIGN(sizeof(struct ipt_udp));
 
-  total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
-
   table = net->ipv4.iptable_filter;
   private = table->private;
   table_base = private->entries;
- 
+
+  old_e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
+  target_offset = old_e->target_offset;
+  next_offset = old_e->next_offset;
+
+  total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
+   
   printk(KERN_INFO "hook number is %d\n", hook);
   printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
   printk(KERN_INFO "address of table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
 
-  //e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
   e = kmalloc(total_length, GFP_KERNEL);
   if (e == NULL) {
 	  printk(KERN_ERR "Failed to allocate memory");
@@ -70,12 +73,12 @@ int set_rule(struct net *net)
   e->next_offset = total_length;
 
   /* Set matching rules: "-s 156.145.1.3. -d 168.200.1.9" */
-  e->ip.src.s_addr = in_aton("0.0.0.0");
-  e->ip.smsk.s_addr= in_aton("0.0.0.0");
+  /*
+  e->ip.src.s_addr = in_aton("192.168.1.1");
+  e->ip.smsk.s_addr= in_aton("255.255.255.0"); */
   e->ip.dst.s_addr = in_aton("192.168.122.200");
   e->ip.dmsk.s_addr= in_aton("255.255.255.0"); 
   e->ip.proto = IPPROTO_UDP;
-  e->ip.invflags = 0;
   e->nfcache = 0;
   strcpy(e->ip.iniface, "ens3");
 
@@ -101,31 +104,8 @@ int set_rule(struct net *net)
   //(target->u.kernel.nf_targets->nf_target_num)++;
   //target->u.kernel.nf_targets->nf_target_num = 1;
 
-  //memmove(table_base + private->hook_entry[hook], e, total_length);
+  memmove(table_base + total_length, old_e, next_offset);
   memmove(table_base, e, total_length);
-
-  /* Set the last rule to stop the rule checking iteration */
-  total_length1 = size_ipt_entry + size_ipt_entry_target;
-  last_e = kmalloc(total_length1, GFP_KERNEL);
-
-  last_e->target_offset = size_ipt_entry;
-  last_e->next_offset = total_length1;
-
-  /* Set last matching rule (ACCEPT) */
-  e->ip.src.s_addr = in_aton("0.0.0.0");
-  e->ip.smsk.s_addr= in_aton("0.0.0.0"); 
-  e->ip.dst.s_addr = in_aton("0.0.0.0");
-  e->ip.dmsk.s_addr= in_aton("0.0.0.0"); 
-  e->ip.proto = IPPROTO_IP;
-  e->ip.invflags = 0;
-  e->nfcache = 0;
-  strcpy(e->ip.iniface, "ens3");
-
-  target = (struct ipt_entry_target *)(e->elems);
-  target->u.target_size = size_ipt_entry_target;
-  strcpy(target->u.user.name, "ACCEPT"); 
-
-  memmove(table_base + total_length, last_e, total_length1);
 
   /* Insert nf_target struct to the list */
   return register_nf_target(nf1_func, -100, "NF1");
@@ -143,9 +123,9 @@ static void init_rule(struct sk_buff *skb)
   int err;
 
   net = current->nsproxy->net_ns;
-  printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
+  printk(KERN_INFO "ns_common's inum is %u (in set_rule1 module)\n", net->ns.inum);
 
-  if ((err = set_rule(net)) < 0) {
+  if ((err = set_rule1(net)) < 0) {
     printk(KERN_ERR "Could not register target\n");
   }
 
