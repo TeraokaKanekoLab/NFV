@@ -90,12 +90,12 @@ ip_packet_match(const struct iphdr *ip,
 {
 	unsigned long ret;
 
-		printk(KERN_INFO "SKB's SRC: %pI4. Rule's Mask: %pI4. Rule's SRC: %pI4.%s\n", &ip->saddr, &ipinfo->smsk.s_addr, &ipinfo->src.s_addr, ipinfo->invflags & IPT_INV_SRCIP ? " (INV)" : "");
+		/*printk(KERN_INFO "SKB's SRC: %pI4. Rule's Mask: %pI4. Rule's SRC: %pI4.%s\n", &ip->saddr, &ipinfo->smsk.s_addr, &ipinfo->src.s_addr, ipinfo->invflags & IPT_INV_SRCIP ? " (INV)" : "");
 		printk(KERN_INFO "SKB's DST: %pI4 Rule's Mask: %pI4 Rule's DST: %pI4.%s\n", &ip->daddr, &ipinfo->dmsk.s_addr, &ipinfo->dst.s_addr, ipinfo->invflags & IPT_INV_DSTIP ? " (INV)" : "");
 		printk(KERN_INFO "Packet's protocol %hi : Ruls's protocol %hi.%s\n", ip->protocol, ipinfo->proto, ipinfo->invflags & IPT_INV_PROTO ? " (INV)" : "");
 		printk(KERN_INFO "Input device %s : Rule's interface %s : Rule's interface mask %s\n", indev, ipinfo->iniface, ipinfo->iniface_mask);
 		printk(KERN_INFO "Output device %s : Rule's interface %s : Rule's interface mask %s\n", outdev, ipinfo->outiface, ipinfo->outiface_mask);
-		printk(KERN_INFO "isfrag is %d\n", isfrag);
+		printk(KERN_INFO "isfrag is %d\n", isfrag); */
 
 #define FWINV(bool, invflg) ((bool) ^ !!(ipinfo->invflags & (invflg)))
 
@@ -371,10 +371,10 @@ ipt_do_table(struct sk_buff *skb,
 		jumpstack += private->stacksize * __this_cpu_read(nf_skb_duplicated);
 
 	e = get_entry(table_base, private->hook_entry[hook]);
- 	printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
+ 	/* printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
 	printk(KERN_INFO "e->target_offset is %u, e->next_offset is %u\n", e->target_offset, e->next_offset);
  	printk(KERN_INFO "address of target is 0x%08lx\n", (ulong)(e + e->target_offset));
- 	printk(KERN_INFO "address of next ipt_entry is 0x%08lx\n", (ulong)(e + e->next_offset));
+ 	printk(KERN_INFO "address of next ipt_entry is 0x%08lx\n", (ulong)(e + e->next_offset)); */
 
 	pr_debug("Entering %s(hook %u), UF %p\n",
 		 table->name, hook,
@@ -391,18 +391,18 @@ ipt_do_table(struct sk_buff *skb,
 			printk(KERN_INFO "No match in ipt_entry(ip)\n");
  no_match:
 			e = ipt_next_entry(e);
-			printk(KERN_INFO "Go to next ipt_entry\n");
+			/* printk(KERN_INFO "Go to next ipt_entry\n");
  			printk(KERN_INFO "address of next ipt_entry e is 0x%08lx\n", (ulong)e);
 			printk(KERN_INFO "e->target_offset is %u, e->next_offset is %u\n", e->target_offset, e->next_offset);
  			printk(KERN_INFO "address of next target is 0x%08lx\n", (ulong)(e + e->target_offset));
- 			printk(KERN_INFO "address of next's next ipt_entry is 0x%08lx\n", (ulong)(e + e->next_offset));
+ 			printk(KERN_INFO "address of next's next ipt_entry is 0x%08lx\n", (ulong)(e + e->next_offset)); */
 			continue;
 		}
 
 		xt_ematch_foreach(ematch, e) {
 			acpar.match     = ematch->u.kernel.match;
 			acpar.matchinfo = ematch->data;
- 			printk(KERN_INFO "address of ematch->u.kernel.match->match is 0x%08lx\n", (ulong)ematch->u.kernel.match->match);
+ 			//printk(KERN_INFO "address of ematch->u.kernel.match->match is 0x%08lx\n", (ulong)ematch->u.kernel.match->match);
 			if (!acpar.match->match(skb, &acpar))
 				printk(KERN_INFO "No match in xt_entry_match\n");
 				printk(KERN_INFO "So, go to next ipt_entry\n");
@@ -425,7 +425,6 @@ ipt_do_table(struct sk_buff *skb,
 #endif
     
     /* Network funciton target? */
-    //if ((t->u.kernel.nf_targets->nf_target_num) > 0) {
     if (!t->u.kernel.target) {
       printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
