@@ -95,6 +95,9 @@ static bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		return false;
 	}
 
+	printk(KERN_INFO "Rule's sport : sport %u ~ %u. SKB's sprt : %u (TCP)\n", tcpinfo->spts[0], tcpinfo->spts[1], ntohs(th->source));
+	printk(KERN_INFO "Rule's dport : dport %u ~ %u. SKB's sprt : %u\n", tcpinfo->dpts[0], tcpinfo->dpts[1], ntohs(th->dest));
+
 	if (!port_match(tcpinfo->spts[0], tcpinfo->spts[1],
 			ntohs(th->source),
 			!!(tcpinfo->invflags & XT_TCP_INV_SRCPT)))
@@ -138,6 +141,7 @@ static bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	printk(KERN_INFO "Checking for UDP xt_entry_match\n");	
 	/* Must not be a fragment. */
 	if (par->fragoff != 0)
+		printk(KERN_INFO "par->fragoff\n");	
 		return false;
 
 	uh = skb_header_pointer(skb, par->thoff, sizeof(_udph), &_udph);
@@ -148,6 +152,9 @@ static bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		par->hotdrop = true;
 		return false;
 	}
+	
+	printk(KERN_INFO "Rule's sport : sport %u ~ %u. SKB's sprt : %u (UDP)\n", udpinfo->spts[0], udpinfo->spts[1], ntohs(uh->source));
+	printk(KERN_INFO "Rule's dport : dport %u ~ %u. SKB's dprt : %u\n", udpinfo->dpts[0], udpinfo->dpts[1], ntohs(uh->dest));
 
 	return port_match(udpinfo->spts[0], udpinfo->spts[1],
 			  ntohs(uh->source),
