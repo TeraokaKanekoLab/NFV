@@ -40,12 +40,14 @@ int set_rule(struct net *net)
   struct ipt_entry *e, *last_e;
   struct ipt_entry_match * match_proto;
   struct ipt_entry_target * target;
+  struct xt_standard_target * st_target;
   struct ipt_udp * udpinfo;
   unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target,size_ipt_udp, total_length, total_length1;
 
   size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
   size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
   size_ipt_entry_target = IPT_ALIGN(sizeof(struct ipt_entry_target));
+//  size_ipt_entry_target = 42 + sizeof(struct nf_targets *);
   size_ipt_udp = IPT_ALIGN(sizeof(struct ipt_udp));
 
   total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
@@ -72,60 +74,68 @@ int set_rule(struct net *net)
   /* Set matching rules: "-s 156.145.1.3. -d 168.200.1.9" */
   e->ip.src.s_addr = in_aton("0.0.0.0");
   e->ip.smsk.s_addr= in_aton("0.0.0.0");
-  e->ip.dst.s_addr = in_aton("192.168.122.200");
-  e->ip.dmsk.s_addr= in_aton("255.255.255.0"); 
+  e->ip.dst.s_addr = in_aton("192.168.122.168");
+  e->ip.dmsk.s_addr= in_aton("192.168.122.168"); 
   e->ip.proto = IPPROTO_UDP;
   e->ip.invflags = 0;
   e->nfcache = 0;
   strcpy(e->ip.iniface, "ens3");
+  strcpy(e->ip.outiface, "ens3");
 
   /* Set protocol-specific match rules */
   match_proto = (struct ipt_entry_match *)e->elems;
   match_proto->u.match_size = size_ipt_entry_match + size_ipt_udp;
   strcpy(match_proto->u.user.name, "udp");
-
   match_proto->u.kernel.match->match = udp_mt;
+  printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, udp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match));
 
   /* UDP match extenstion */
   udpinfo = (struct ipt_udp *)match_proto->data;
-  /*
   udpinfo->spts[0] = ntohs(0);
-  udpinfo->spts[1] = ntohs(0xE7); */
+  udpinfo->spts[1] = ntohs(0xE7); 
   udpinfo->dpts[0] = ntohs(0);
   udpinfo->dpts[1] = ntohs(0x1c8);
 
   /* ipt_entry_target struct */
   target = (struct ipt_entry_target *)(e->elems + size_ipt_entry_match + size_ipt_udp);
+  //target = (struct ipt_entry_target *)(e + e->target_offset);
+  printk(KERN_INFO "address of e->elems is 0x%08lx\n", (ulong)e->elems);
   printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
   target->u.target_size = size_ipt_entry_target;
   //(target->u.kernel.nf_targets->nf_target_num)++;
   //target->u.kernel.nf_targets->nf_target_num = 1;
 
   //memmove(table_base + private->hook_entry[hook], e, total_length);
-  memmove(table_base, e, total_length);
+  memcpy(table_base, e, total_length);
 
   /* Set the last rule to stop the rule checking iteration */
-  total_length1 = size_ipt_entry + size_ipt_entry_target;
+  //total_length1 = size_ipt_entry + size_ipt_entry_target;
+  total_length1 = size_ipt_entry + IPT_ALIGN(sizeof(struct xt_standard_target));
   last_e = kmalloc(total_length1, GFP_KERNEL);
 
   last_e->target_offset = size_ipt_entry;
   last_e->next_offset = total_length1;
 
   /* Set last matching rule (ACCEPT) */
-  e->ip.src.s_addr = in_aton("0.0.0.0");
-  e->ip.smsk.s_addr= in_aton("0.0.0.0"); 
-  e->ip.dst.s_addr = in_aton("0.0.0.0");
-  e->ip.dmsk.s_addr= in_aton("0.0.0.0"); 
-  e->ip.proto = IPPROTO_IP;
-  e->ip.invflags = 0;
-  e->nfcache = 0;
-  strcpy(e->ip.iniface, "ens3");
+  last_e->ip.src.s_addr = in_aton("0.0.0.0");
+  last_e->ip.smsk.s_addr= in_aton("0.0.0.0"); 
+  last_e->ip.dst.s_addr = in_aton("0.0.0.0");
+  last_e->ip.dmsk.s_addr= in_aton("0.0.0.0"); 
+  last_e->ip.proto = IPPROTO_IP;
+  last_e->ip.invflags = 0;
+  last_e->nfcache = 0;
+  strcpy(last_e->ip.iniface, "ens3");
+  strcpy(last_e->ip.outiface, "ens3");
 
-  target = (struct ipt_entry_target *)(e->elems);
-  target->u.target_size = size_ipt_entry_target;
-  strcpy(target->u.user.name, "ACCEPT"); 
+  //target = (struct ipt_entry_target *)(last_e->elems);
+  st_target = (struct xt_standard_target *)(last_e + last_e->target_offset);
+  st_target->verdict = -2;
+  st_target->target.u.target_size = size_ipt_entry_target;
+  strcpy(st_target->target.u.user.name, "ACCEPT"); 
 
-  memmove(table_base + total_length, last_e, total_length1);
+  memcpy(table_base + total_length, last_e, total_length1);
+  printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
+  //printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e + last_e->target_offset));
 
   /* Insert nf_target struct to the list */
   return register_nf_target(nf1_func, -100, "NF1");
@@ -148,7 +158,7 @@ static void init_rule(struct sk_buff *skb)
   if ((err = set_rule(net)) < 0) {
     printk(KERN_ERR "Could not register target\n");
   }
-
+   
   msg_size = strlen(msg);
 
   nlh = (struct nlmsghdr *)skb->data;
@@ -180,6 +190,7 @@ static int __init nf_init(void)
     printk(KERN_ALERT "Error crating socket\n");
     return -10;
   }
+  pr_info("Set_rule module is inserterd!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   return 0;
 }
 
@@ -193,4 +204,6 @@ module_init(nf_init);
 module_exit(nf_exit);
 
 MODULE_LICENSE("GPL");
+
+
 
