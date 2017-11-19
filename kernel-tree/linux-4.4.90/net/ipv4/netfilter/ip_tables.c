@@ -428,7 +428,7 @@ ipt_do_table(struct sk_buff *skb,
 #endif
     
     /* Network funciton target? */
-    if (t->u.kernel.nf_targets->nf_target_num > 0) {
+    if (t->u.kernel.target) {
       printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
       i = target_head.next;
@@ -504,10 +504,12 @@ ipt_do_table(struct sk_buff *skb,
 #ifdef DEBUG_ALLOW_ALL
 	return NF_ACCEPT;
 #else
-	if (acpar.hotdrop)
+	if (acpar.hotdrop) {
 		return NF_DROP;
-	printk(KERN_INFO "verdict %d will get returned\n", verdict); 
-	else return verdict;
+	} else {
+		printk(KERN_INFO "verdict %d will get returned\n", verdict); 
+		return verdict;
+	}
 #endif
 }
 
