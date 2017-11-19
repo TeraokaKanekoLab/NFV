@@ -406,7 +406,6 @@ ipt_do_table(struct sk_buff *skb,
 		xt_ematch_foreach(ematch, e) {
 			acpar.match     = ematch->u.kernel.match;
 			acpar.matchinfo = ematch->data;
- 			//printk(KERN_INFO "address of ematch->u.kernel.match->match is 0x%08lx\n", (ulong)ematch->u.kernel.match->match);
 			if (!acpar.match->match(skb, &acpar))
 				printk(KERN_INFO "No match in xt_entry_match\n");
 				printk(KERN_INFO "So, go to next ipt_entry\n");
@@ -429,7 +428,7 @@ ipt_do_table(struct sk_buff *skb,
 #endif
     
     /* Network funciton target? */
-    if (!t->u.kernel.target) {
+    if (t->u.kernel.nf_targets->nf_target_num > 0) {
       printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
       i = target_head.next;
@@ -447,10 +446,12 @@ ipt_do_table(struct sk_buff *skb,
 			int v;
 
 			v = ((struct xt_standard_target *)t)->verdict;
+        	printk(KERN_INFO "standard verdict is %u\n", v);
 			if (v < 0) {
 				/* Pop from stack? */
 				if (v != XT_RETURN) {
 					verdict = (unsigned int)(-v) - 1;
+        			printk(KERN_INFO "verdict is %u, and break\n", verdict);
 					break;
 				}
 				if (stackidx == 0) {
@@ -479,6 +480,7 @@ ipt_do_table(struct sk_buff *skb,
 
     if (!t->u.kernel.target) {
       verdict = t_verdict; 
+	  printk(KERN_INFO "t_verdict %d will get returned\n", verdict); 
       break;
     } else {
       acpar.target   = t->u.kernel.target;
@@ -495,7 +497,6 @@ ipt_do_table(struct sk_buff *skb,
     }
 	} while (!acpar.hotdrop);
 	pr_debug("Exiting %s; sp at %u\n", __func__, stackidx);
-	printk(KERN_INFO "t_verdict %d will get returned\n", t_verdict); 
 
 	xt_write_recseq_end(addend);
 	local_bh_enable();
@@ -505,6 +506,7 @@ ipt_do_table(struct sk_buff *skb,
 #else
 	if (acpar.hotdrop)
 		return NF_DROP;
+	printk(KERN_INFO "verdict %d will get returned\n", verdict); 
 	else return verdict;
 #endif
 }

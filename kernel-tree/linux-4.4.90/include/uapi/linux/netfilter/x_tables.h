@@ -30,11 +30,9 @@ struct xt_entry_match {
 	unsigned char data[0];
 };
 
-/*
 struct nf_targets {
   int nf_target_num;
 };
-*/
 
 struct xt_entry_target {
 	union {
@@ -50,7 +48,7 @@ struct xt_entry_target {
 
 			/* Used inside the kernel */
 			struct xt_target *target;
-     	 	//struct nf_targets *nf_targets;
+     	 	struct nf_targets *nf_targets;
 		} kernel;
 
 		/* Total length */
