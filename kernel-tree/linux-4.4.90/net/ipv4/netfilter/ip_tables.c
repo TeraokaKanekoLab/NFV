@@ -113,7 +113,8 @@ ip_packet_match(const struct iphdr *ip,
 			ipinfo->invflags & IPT_INV_DSTIP ? " (INV)" : ""); */
 		return false;
 	}
-
+	
+	/*
 	ret = ifname_compare_aligned(indev, ipinfo->iniface, ipinfo->iniface_mask);
 
 	if (FWINV(ret != 0, IPT_INV_VIA_IN)) {
@@ -131,6 +132,7 @@ ip_packet_match(const struct iphdr *ip,
 			ipinfo->invflags & IPT_INV_VIA_OUT ? " (INV)" : "");
 		return false;
 	}
+	*/
 
 	/* Check specific protocol */
 	if (ipinfo->proto &&
@@ -371,7 +373,8 @@ ipt_do_table(struct sk_buff *skb,
 		jumpstack += private->stacksize * __this_cpu_read(nf_skb_duplicated);
 
 	e = get_entry(table_base, private->hook_entry[hook]);
- 	/* printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
+ 	printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
+	/*
 	printk(KERN_INFO "e->target_offset is %u, e->next_offset is %u\n", e->target_offset, e->next_offset);
  	printk(KERN_INFO "address of target is 0x%08lx\n", (ulong)(e + e->target_offset));
  	printk(KERN_INFO "address of next ipt_entry is 0x%08lx\n", (ulong)(e + e->next_offset)); */
@@ -391,8 +394,9 @@ ipt_do_table(struct sk_buff *skb,
 			printk(KERN_INFO "No match in ipt_entry(ip)\n");
  no_match:
 			e = ipt_next_entry(e);
-			/* printk(KERN_INFO "Go to next ipt_entry\n");
+			printk(KERN_INFO "Go to next ipt_entry\n");
  			printk(KERN_INFO "address of next ipt_entry e is 0x%08lx\n", (ulong)e);
+			/*
 			printk(KERN_INFO "e->target_offset is %u, e->next_offset is %u\n", e->target_offset, e->next_offset);
  			printk(KERN_INFO "address of next target is 0x%08lx\n", (ulong)(e + e->target_offset));
  			printk(KERN_INFO "address of next's next ipt_entry is 0x%08lx\n", (ulong)(e + e->next_offset)); */
