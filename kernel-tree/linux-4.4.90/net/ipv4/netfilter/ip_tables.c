@@ -429,7 +429,7 @@ ipt_do_table(struct sk_buff *skb,
 #endif
     
     /* Network funciton target? */
-    if (t->u.kernel.target) {
+    if (!t->u.kernel.target) {
       printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
       i = target_head.next;
