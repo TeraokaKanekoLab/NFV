@@ -24,7 +24,10 @@ MODULE_ALIAS("ip6t_tcp");
 static inline bool
 port_match(u_int16_t min, u_int16_t max, u_int16_t port, bool invert)
 {
+	printk(KERN_INFO "min is %u, max is %u, port is %u\n", min, max, port);
+	printk(KERN_INFO "bool is %s\n", invert ? "true" : "false");
 	return (port >= min && port <= max) ^ invert;
+	//return (port >= min && port <= max);
 }
 
 static bool
@@ -67,6 +70,10 @@ static bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	const struct tcphdr *th;
 	struct tcphdr _tcph;
 	const struct xt_tcp *tcpinfo = par->matchinfo;
+	
+	printk(KERN_INFO "tcp_mt is called\n");
+	printk(KERN_INFO "par->fragoff is %d\n", par->fragoff);
+	return true;
 
 	if (par->fragoff != 0) {
 		/* To quote Alan:
@@ -80,6 +87,7 @@ static bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 			par->hotdrop = true;
 		}
 		/* Must not be a fragment. */
+		printk(KERN_INFO "Must not be a fragment\n");
 		return false;
 	}
 
@@ -91,21 +99,30 @@ static bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		   can't.  Hence, no choice but to drop. */
 		pr_debug("Dropping evil TCP offset=0 tinygram.\n");
 		par->hotdrop = true;
+		printk(KERN_INFO "Cannot read header\n");
 		return false;
 	}
 
+	printk(KERN_INFO "Rule's Src port %u ~ %u, %u\n", tcpinfo->spts[0], tcpinfo->spts[1], ntohs(th->source));
 	if (!port_match(tcpinfo->spts[0], tcpinfo->spts[1],
 			ntohs(th->source),
 			!!(tcpinfo->invflags & XT_TCP_INV_SRCPT)))
+		printk(KERN_INFO "Src port didn't match %u\n", tcpinfo->spts[1]);
 		return false;
+
+	printk(KERN_INFO "Rule's Dst port %u ~ %u, %u\n", tcpinfo->dpts[0], tcpinfo->dpts[1], ntohs(th->dest));
 	if (!port_match(tcpinfo->dpts[0], tcpinfo->dpts[1],
 			ntohs(th->dest),
 			!!(tcpinfo->invflags & XT_TCP_INV_DSTPT)))
+		printk(KERN_INFO "Dst port didn't match %u\n", tcpinfo->dpts[1]);
 		return false;
+	printk(KERN_INFO "before checking invflags\n");
 	if (!FWINVTCP((((unsigned char *)th)[13] & tcpinfo->flg_mask)
 		      == tcpinfo->flg_cmp,
 		      XT_TCP_INV_FLAGS))
+		printk(KERN_INFO "TCP inv flag is set\n");
 		return false;
+	/*
 	if (tcpinfo->option) {
 		if (th->doff * 4 < sizeof(_tcph)) {
 			par->hotdrop = true;
@@ -116,9 +133,10 @@ static bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 				     tcpinfo->invflags & XT_TCP_INV_OPTION,
 				     &par->hotdrop))
 			return false;
-	}
+	} */
 	return true;
 }
+EXPORT_SYMBOL(tcp_mt);
 
 static int tcp_mt_check(const struct xt_mtchk_param *par)
 {
