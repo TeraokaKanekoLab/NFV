@@ -140,9 +140,10 @@ static bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 	printk(KERN_INFO "Checking for UDP xt_entry_match\n");	
 	/* Must not be a fragment. */
-	if (par->fragoff != 0)
+	if (par->fragoff != 0) {
 		printk(KERN_INFO "par->fragoff\n");	
 		return false;
+	}
 
 	uh = skb_header_pointer(skb, par->thoff, sizeof(_udph), &_udph);
 	if (uh == NULL) {

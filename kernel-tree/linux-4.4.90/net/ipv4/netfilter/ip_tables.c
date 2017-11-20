@@ -406,10 +406,11 @@ ipt_do_table(struct sk_buff *skb,
 		xt_ematch_foreach(ematch, e) {
 			acpar.match     = ematch->u.kernel.match;
 			acpar.matchinfo = ematch->data;
-			if (!acpar.match->match(skb, &acpar))
+			if (!acpar.match->match(skb, &acpar)) {
 				printk(KERN_INFO "No match in xt_entry_match\n");
 				printk(KERN_INFO "So, go to next ipt_entry\n");
 				goto no_match;
+			}
 		}
 
 		counter = xt_get_this_cpu_counter(&e->counters);
