@@ -447,12 +447,12 @@ ipt_do_table(struct sk_buff *skb,
 			int v;
 
 			v = ((struct xt_standard_target *)t)->verdict;
-        	printk(KERN_INFO "standard verdict is %u\n", v);
+        	/* printk(KERN_INFO "standard verdict is %u\n", v); */
 			if (v < 0) {
 				/* Pop from stack? */
 				if (v != XT_RETURN) {
 					verdict = (unsigned int)(-v) - 1;
-        			printk(KERN_INFO "verdict is %u, and break\n", verdict);
+        			/* printk(KERN_INFO "verdict is %u, and break\n", verdict); */
 					break;
 				}
 				if (stackidx == 0) {
@@ -481,7 +481,7 @@ ipt_do_table(struct sk_buff *skb,
 
     if (!t->u.kernel.target) {
       verdict = t_verdict; 
-	  printk(KERN_INFO "t_verdict %d will get returned\n", verdict); 
+	  /* printk(KERN_INFO "t_verdict %d will get returned\n", verdict); */
       break;
     } else {
       acpar.target   = t->u.kernel.target;
@@ -508,7 +508,7 @@ ipt_do_table(struct sk_buff *skb,
 	if (acpar.hotdrop) {
 		return NF_DROP;
 	} else {
-		printk(KERN_INFO "verdict %d will get returned\n", verdict); 
+		/* printk(KERN_INFO "verdict %d will get returned\n", verdict); */
 		return verdict;
 	}
 #endif
