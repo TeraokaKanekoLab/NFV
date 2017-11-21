@@ -417,20 +417,22 @@ ipt_do_table(struct sk_buff *skb,
 		ADD_COUNTER(*counter, skb->len, 1);
 
 		t = ipt_get_target(e);
- 		printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)t);
-		IP_NF_ASSERT(t->u.kernel.target);
+ 		/* printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)t); */
+		/* IP_NF_ASSERT(t->u.kernel.target); */
 		printk(KERN_INFO "A rule (5 tuple) matched!\n");
 
 #if IS_ENABLED(CONFIG_NETFILTER_XT_TARGET_TRACE)
-		/* The packet is traced: log it */
-		if (unlikely(skb->nf_trace))
-			trace_packet(state->net, skb, hook, state->in,
-				     state->out, table->name, private, e);
+    /* The packet is traced: log it */
+    if (unlikely(skb->nf_trace))
+      trace_packet(state->net, skb, hook, state->in,
+          state->out, table->name, private, e);
 #endif
-    
+
     /* Network funciton target? */
-    /* if (!t->u.kernel.target) { */
-    if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
+    /* if (!t->u.kernel.target) { <-------- "This is NF1" was called in this case */
+    if (!t) {
+      printk(KERN_WARNING "ipt_entry_target t is null\n");
+    } else if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
       printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
       i = target_head.next;
@@ -481,7 +483,10 @@ ipt_do_table(struct sk_buff *skb,
 		}
 
     /* if (!t->u.kernel.target) { */
-    if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
+    if (!t) {
+      printk(KERN_WARNING "warning\n");
+      verdict = 0;
+    } else if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
       verdict = t_verdict; 
 	    /* printk(KERN_INFO "t_verdict %d will get returned\n", verdict); */
       break;
