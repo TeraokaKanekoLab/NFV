@@ -430,7 +430,7 @@ ipt_do_table(struct sk_buff *skb,
     
     /* Network funciton target? */
     /* if (!t->u.kernel.target) { */
-    if (1) {
+    if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
       printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
       i = target_head.next;
@@ -444,8 +444,8 @@ ipt_do_table(struct sk_buff *skb,
         }
       } while (i != &target_head);
     } else if (!t->u.kernel.target->target) { /* Standard target? */
-      		printk(KERN_INFO "Entering standard target iteration loop......\n");
-			int v;
+      printk(KERN_INFO "Entering standard target iteration loop......\n");
+      int v;
 
 			v = ((struct xt_standard_target *)t)->verdict;
         	/* printk(KERN_INFO "standard verdict is %u\n", v); */
@@ -481,9 +481,9 @@ ipt_do_table(struct sk_buff *skb,
 		}
 
     /* if (!t->u.kernel.target) { */
-    if (1) {
+    if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
       verdict = t_verdict; 
-	  printk(KERN_INFO "t_verdict %d will get returned\n", verdict);
+	    /* printk(KERN_INFO "t_verdict %d will get returned\n", verdict); */
       break;
     } else {
       acpar.target   = t->u.kernel.target;
