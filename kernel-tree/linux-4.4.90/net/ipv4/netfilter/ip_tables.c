@@ -429,7 +429,8 @@ ipt_do_table(struct sk_buff *skb,
 #endif
     
     /* Network funciton target? */
-    if (!t->u.kernel.target) {
+    /* if (!t->u.kernel.target) { */
+    if (1) {
       printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
       i = target_head.next;
@@ -479,9 +480,10 @@ ipt_do_table(struct sk_buff *skb,
 			continue;
 		}
 
-    if (!t->u.kernel.target) {
+    /* if (!t->u.kernel.target) { */
+    if (1) {
       verdict = t_verdict; 
-	  /* printk(KERN_INFO "t_verdict %d will get returned\n", verdict); */
+	  printk(KERN_INFO "t_verdict %d will get returned\n", verdict);
       break;
     } else {
       acpar.target   = t->u.kernel.target;
@@ -508,7 +510,7 @@ ipt_do_table(struct sk_buff *skb,
 	if (acpar.hotdrop) {
 		return NF_DROP;
 	} else {
-		/* printk(KERN_INFO "verdict %d will get returned\n", verdict); */
+		printk(KERN_INFO "verdict %d will get returned\n", verdict); 
 		return verdict;
 	}
 #endif
