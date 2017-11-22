@@ -121,10 +121,12 @@ int set_rule(struct net *net)
   /* ipt_entry_target struct */
   //target = (struct ipt_entry_target *)(e->elems + size_ipt_entry_match + size_ipt_udp);
   //target = (struct ipt_entry_target *)(e->elems + size_ipt_entry_match + size_ipt_tcp);
-  target = (struct ipt_entry_target *)(e + e->target_offset);
+  //target = (struct ipt_entry_target *)(e + e->target_offset);
+  target = (struct ipt_entry_target *)((void *)e + size_ipt_entry + size_ipt_entry_match + size_ipt_tcp);
   printk(KERN_INFO "address of e->elems is 0x%08lx\n", (ulong)e->elems);
   printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
   target->u.target_size = size_ipt_entry_target;
+  strcpy(target->u.user.name, "NFC");
   //(target->u.kernel.nf_targets->nf_target_num)++;
   //target->u.kernel.nf_targets->nf_target_num = 1;
 
