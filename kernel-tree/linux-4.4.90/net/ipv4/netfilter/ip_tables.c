@@ -450,12 +450,13 @@ ipt_do_table(struct sk_buff *skb,
       int v;
 
 			v = ((struct xt_standard_target *)t)->verdict;
-        	/* printk(KERN_INFO "standard verdict is %u\n", v); */
+        	printk(KERN_INFO "standard verdict is %d\n", v);
+        	printk(KERN_INFO "standard verdict (u) is %u\n", v);
 			if (v < 0) {
 				/* Pop from stack? */
 				if (v != XT_RETURN) {
 					verdict = (unsigned int)(-v) - 1;
-        			/* printk(KERN_INFO "verdict is %u, and break\n", verdict); */
+        			printk(KERN_INFO "verdict is %u, and break\n", verdict);
 					break;
 				}
 				if (stackidx == 0) {
@@ -488,9 +489,10 @@ ipt_do_table(struct sk_buff *skb,
       verdict = 0;
     } else if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
       verdict = t_verdict; 
-	    /* printk(KERN_INFO "t_verdict %d will get returned\n", verdict); */
+	    printk(KERN_INFO "t_verdict %d will get returned\n", verdict);
       break;
     } else {
+	  printk(KERN_INFO "execution target..\n");
       acpar.target   = t->u.kernel.target;
       acpar.targinfo = t->data;
 
