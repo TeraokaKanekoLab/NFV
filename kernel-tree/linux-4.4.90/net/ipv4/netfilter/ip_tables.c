@@ -417,7 +417,7 @@ ipt_do_table(struct sk_buff *skb,
 		ADD_COUNTER(*counter, skb->len, 1);
 
 		t = ipt_get_target(e);
- 		/* printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)t); */
+ 		printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)t); 
 		/* IP_NF_ASSERT(t->u.kernel.target); */
 		printk(KERN_INFO "A rule (5 tuple) matched!\n");
 
@@ -445,43 +445,45 @@ ipt_do_table(struct sk_buff *skb,
           i = i->next;
         }
       } while (i != &target_head);
+      printk(KERN_INFO "end of the loop\n");
+      break;
     } else if (!t->u.kernel.target->target) { /* Standard target? */
       printk(KERN_INFO "Entering standard target iteration loop......\n");
       int v;
 
-			v = ((struct xt_standard_target *)t)->verdict;
-        	printk(KERN_INFO "standard verdict is %d\n", v);
-        	printk(KERN_INFO "standard verdict (u) is %u\n", v);
-			if (v < 0) {
-				/* Pop from stack? */
-				if (v != XT_RETURN) {
-					verdict = (unsigned int)(-v) - 1;
-        			printk(KERN_INFO "verdict is %u, and break\n", verdict);
-					break;
-				}
-				if (stackidx == 0) {
-					e = get_entry(table_base,
-					    private->underflow[hook]);
-					pr_debug("Underflow (this is normal) "
-						 "to %p\n", e);
-				} else {
-					e = jumpstack[--stackidx];
-					pr_debug("Pulled %p out from pos %u\n",
-						 e, stackidx);
-					e = ipt_next_entry(e);
-				}
-				continue;
-			}
-			if (table_base + v != ipt_next_entry(e) &&
-			    !(e->ip.flags & IPT_F_GOTO)) {
-				jumpstack[stackidx++] = e;
-				pr_debug("Pushed %p into pos %u\n",
-					 e, stackidx - 1);
-			}
+      v = ((struct xt_standard_target *)t)->verdict;
+      printk(KERN_INFO "standard verdict is %d\n", v);
+      printk(KERN_INFO "standard verdict (u) is %u\n", v);
+      if (v < 0) {
+        /* Pop from stack? */
+        if (v != XT_RETURN) {
+          verdict = (unsigned int)(-v) - 1;
+          printk(KERN_INFO "verdict is %u, and break\n", verdict);
+          break;
+        }
+        if (stackidx == 0) {
+          e = get_entry(table_base,
+              private->underflow[hook]);
+          pr_debug("Underflow (this is normal) "
+              "to %p\n", e);
+        } else {
+          e = jumpstack[--stackidx];
+          pr_debug("Pulled %p out from pos %u\n",
+              e, stackidx);
+          e = ipt_next_entry(e);
+        }
+        continue;
+      }
+      if (table_base + v != ipt_next_entry(e) &&
+          !(e->ip.flags & IPT_F_GOTO)) {
+        jumpstack[stackidx++] = e;
+        pr_debug("Pushed %p into pos %u\n",
+            e, stackidx - 1);
+      }
 
-			e = get_entry(table_base, v);
-			continue;
-		}
+      e = get_entry(table_base, v);
+      continue;
+    }
 
     /* if (!t->u.kernel.target) { */
     if (!t) {
@@ -489,10 +491,10 @@ ipt_do_table(struct sk_buff *skb,
       verdict = 0;
     } else if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
       verdict = t_verdict; 
-	    printk(KERN_INFO "t_verdict %d will get returned\n", verdict);
+      printk(KERN_INFO "t_verdict %d will get returned\n", verdict);
       break;
     } else {
-	  printk(KERN_INFO "execution target..\n");
+      printk(KERN_INFO "execution target..\n");
       acpar.target   = t->u.kernel.target;
       acpar.targinfo = t->data;
 
@@ -505,8 +507,8 @@ ipt_do_table(struct sk_buff *skb,
         /* Verdict */
         break;
     }
-	} while (!acpar.hotdrop);
-	pr_debug("Exiting %s; sp at %u\n", __func__, stackidx);
+  } while (!acpar.hotdrop);
+    pr_debug("Exiting %s; sp at %u\n", __func__, stackidx);
 
 	xt_write_recseq_end(addend);
 	local_bh_enable();
