@@ -272,6 +272,7 @@ unsigned int nf_iterate(struct list_head *head,
 		   reference here, since function can't sleep. --RR */
 repeat:
 		verdict = (*elemp)->hook((*elemp)->priv, skb, state);
+    printk(KERN_INFO "in nf_iterate verdict is %u\n", verdict);
 		if (verdict != NF_ACCEPT) {
 #ifdef CONFIG_NETFILTER_DEBUG
 			if (unlikely((verdict & NF_VERDICT_MASK)
@@ -281,10 +282,13 @@ repeat:
 				continue;
 			}
 #endif
-			if (verdict != NF_REPEAT)
+			if (verdict != NF_REPEAT) {
+        printk(KERN_INFO "Verdict is %u\n", verdict);
 				return verdict;
+      }
 			goto repeat;
 		}
+    return NF_ACCEPT;
 	}
 	return NF_ACCEPT;
 }

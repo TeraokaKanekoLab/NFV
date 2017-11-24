@@ -446,7 +446,6 @@ ipt_do_table(struct sk_buff *skb,
         }
       } while (i != &target_head);
       printk(KERN_INFO "end of the loop\n");
-      break;
     } else if (!t->u.kernel.target->target) { /* Standard target? */
       printk(KERN_INFO "Entering standard target iteration loop......\n");
       int v;
