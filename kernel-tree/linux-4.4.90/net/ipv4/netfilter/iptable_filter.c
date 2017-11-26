@@ -21,9 +21,9 @@ MODULE_AUTHOR("Netfilter Core Team <coreteam@netfilter.org>");
 MODULE_DESCRIPTION("iptables filter table");
 
 #define FILTER_VALID_HOOKS ((1 << NF_INET_PRE_ROUTING) | \
-    (1 << NF_INET_LOCAL_IN) | \
-			    (1 << NF_INET_FORWARD) | \
-			    (1 << NF_INET_LOCAL_OUT))
+    (1 << NF_INET_LOCAL_IN))
+
+//#define FILTER_VALID_HOOKS ((1 << NF_INET_PRE_ROUTING))
 
 static const struct xt_table packet_filter = {
 	.name		= "filter",
@@ -41,6 +41,8 @@ iptable_filter_hook(void *priv, struct sk_buff *skb,
 	    (skb->len < sizeof(struct iphdr) ||
 	     ip_hdrlen(skb) < sizeof(struct iphdr)))
 		/* root is playing with raw sockets. */
+		return NF_ACCEPT;
+	if (state->hook == NF_INET_LOCAL_IN)
 		return NF_ACCEPT;
 
 	return ipt_do_table(skb, state, state->net->ipv4.iptable_filter);

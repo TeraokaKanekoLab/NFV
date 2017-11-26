@@ -256,7 +256,8 @@ int ip_local_deliver(struct sk_buff *skb)
 
 	return NF_HOOK(NFPROTO_IPV4, NF_INET_LOCAL_IN,
 		       net, NULL, skb, skb->dev, NULL,
-		       ip_local_deliver_finish);
+		       ip_local_deliver_finish); 
+  //return ip_local_deliver_finish(net, NULL, skb);
 }
 
 static inline bool ip_rcv_options(struct sk_buff *skb)
