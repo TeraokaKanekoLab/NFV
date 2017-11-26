@@ -14,6 +14,7 @@
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <uapi/linux/netfilter/xt_tcpudp.h>
 #include <uapi/linux/netfilter.h>
+#include <linux/netfilter.h>
 #include <net/netfilter/nf_log.h>
 #define NETLINK_USER 31
 
@@ -31,9 +32,7 @@ extern bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern struct list_head target_head;
 
-struct sock *nl_sk = NULL;
-
-int set_rule(struct net *net)
+int set_rule(void)
 {
   unsigned int hook = NF_INET_PRE_ROUTING;
   struct xt_table *table;
@@ -41,11 +40,14 @@ int set_rule(struct net *net)
   const void *table_base;
   struct ipt_entry *e, *last_e;
   struct ipt_entry_match * match_proto;
-  struct ipt_entry_target * target;
+  struct ipt_entry_target * target, *t, *t1;
   struct xt_standard_target * st_target;
   struct ipt_udp * udpinfo;
   struct ipt_tcp * tcpinfo;
   unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target, size_ipt_udp, size_ipt_tcp, total_length, total_length1;
+  int v;
+  unsigned int verdict;
+  int ret = 0;
 
   size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
   size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
@@ -56,15 +58,7 @@ int set_rule(struct net *net)
   //total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
   total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp + size_ipt_entry_target;
 
-  table = net->ipv4.iptable_filter;
-  private = table->private;
-  table_base = private->entries;
- 
-  printk(KERN_INFO "hook number is %d\n", hook);
-  printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
-  printk(KERN_INFO "address of table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
-
-  //e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
+    //e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
   e = kmalloc(total_length, GFP_KERNEL);
   if (e == NULL) {
 	  printk(KERN_ERR "Failed to allocate memory");
@@ -130,8 +124,13 @@ int set_rule(struct net *net)
   //(target->u.kernel.nf_targets->nf_target_num)++;
   //target->u.kernel.nf_targets->nf_target_num = 1;
 
-  //memmove(table_base + private->hook_entry[hook], e, total_length);
-  memcpy(table_base, e, total_length);
+  t = ipt_get_target(e);
+
+  if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
+    printk(KERN_INFO "sucess!!\n");
+  } else {
+    printk(KERN_INFO "fail\n");
+  }
 
   /* Set the last rule to stop the rule checking iteration */
   //total_length1 = size_ipt_entry + size_ipt_entry_target;
@@ -153,80 +152,46 @@ int set_rule(struct net *net)
   strcpy(last_e->ip.outiface, "ens3");
 
   //target = (struct ipt_entry_target *)(last_e->elems);
-  //st_target = (struct xt_standard_target *)((void *)last_e + last_e->target_offset);
-  //st_target = (struct xt_standard_target *)(last_e + last_e->target_offset);
   st_target = (struct xt_standard_target *)((void *)last_e + size_ipt_entry);
-  st_target->verdict = -2;
-  //st_target->verdict = -3;
-  //st_target->verdict = -1;
+  printk(KERN_INFO "address of st_target is %u\n", st_target);
+  //st_target->verdict = -2;
+  st_target->verdict = -1;
   st_target->target.u.target_size = size_ipt_entry_target;
   strcpy(st_target->target.u.user.name, "ACCEPT"); 
 
-  memcpy(table_base + total_length, last_e, total_length1);
-  printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
-  printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
-
-  /* Insert nf_target struct to the list */
-  return register_nf_target(nf1_func, -100, "NF1");
-}
-
-static void init_rule(struct sk_buff *skb)
-{
-  struct nlmsghdr *nlh;
-  int pid;
-  struct sk_buff *skb_out;
-  int msg_size;
-  char *msg = "I have set the rules";
-  int res;
-  struct net *net;
-  int err;
-
-  net = current->nsproxy->net_ns;
-  printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
-
-  if ((err = set_rule(net)) < 0) {
-    printk(KERN_ERR "Could not register target\n");
+  if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
+    printk(KERN_INFO "sucess!!\n");
+  } else {
+    printk(KERN_INFO "fail\n");
   }
-   
-  msg_size = strlen(msg);
+  
+  t1 = ipt_get_target(last_e);
+  printk(KERN_INFO "address of t1 is %u\n", t1);
+  v = ((struct xt_standard_target *)t1)->verdict;
+  verdict = (unsigned int)(-v) - 1;
+  printk(KERN_INFO "verdict is %u\n", verdict);
 
-  nlh = (struct nlmsghdr *)skb->data;
-  printk(KERN_INFO "Kernel module received msg payload:%s\n", (char *)nlmsg_data(nlh));
-  pid = nlh->nlmsg_pid;
-
-  if (!(skb_out = nlmsg_new(msg_size, 0))) {
-    printk(KERN_ERR "Failed to allocate new skb\n");
-    return;
-  } 
-
-  nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
-  NETLINK_CB(skb_out).dst_group = 0;
-  strncpy(nlmsg_data(nlh), msg, msg_size);
-
-  if ((res = nlmsg_unicast(nl_sk, skb_out, pid)) < 0) {
-    printk(KERN_INFO "Error while sending back to user\n");
+  if ((verdict & NF_VERDICT_MASK) == NF_DROP) {
+    ret = NF_DROP_GETERR(verdict);
+    if (ret == 0)
+      printk(KERN_INFO "this is eperm\n");
+      ret = -EPERM;
   }
+  printk(KERN_INFO "ret is %d\n", ret);
+
+  return 0;
 }
 
 static int __init nf_init(void)
 {
   printk("Entering: %s\n", __FUNCTION__);
-  struct netlink_kernel_cfg cfg = {
-    .input = init_rule,
-  };
-  nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
-  if (!nl_sk) {
-    printk(KERN_ALERT "Error crating socket\n");
-    return -10;
-  }
-  pr_info("Set_rule module is inserterd!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+  set_rule();
   return 0;
 }
 
 static void __exit nf_exit(void)
 {
   printk(KERN_INFO "exiting nf module\n");
-  netlink_kernel_release(nl_sk);
 }
 
 module_init(nf_init);
