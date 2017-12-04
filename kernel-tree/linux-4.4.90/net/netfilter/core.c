@@ -200,6 +200,7 @@ int nf_register_hook(struct nf_hook_ops *reg)
 			goto rollback;
 	}
 	list_add_tail(&reg->list, &nf_hook_list);
+	printk(KERN_INFO "Entry is added to the list\n");
 	rtnl_unlock();
 
 	return 0;
@@ -265,6 +266,7 @@ unsigned int nf_iterate(struct list_head *head,
 	 * function because of risk of continuing from deleted element.
 	 */
 	list_for_each_entry_continue_rcu((*elemp), head, list) {
+    	printk(KERN_INFO "priority is %u\n", (*elemp)->priority);
 		if (state->thresh > (*elemp)->priority)
 			continue;
 
@@ -272,7 +274,7 @@ unsigned int nf_iterate(struct list_head *head,
 		   reference here, since function can't sleep. --RR */
 repeat:
 		verdict = (*elemp)->hook((*elemp)->priv, skb, state);
-    printk(KERN_INFO "in nf_iterate verdict is %u\n", verdict);
+    	printk(KERN_INFO "in nf_iterate verdict is %u\n", verdict);
 		if (verdict != NF_ACCEPT) {
 #ifdef CONFIG_NETFILTER_DEBUG
 			if (unlikely((verdict & NF_VERDICT_MASK)
@@ -288,7 +290,7 @@ repeat:
       }
 			goto repeat;
 		}
-    return NF_ACCEPT;
+    //return NF_ACCEPT;
 	}
 	return NF_ACCEPT;
 }

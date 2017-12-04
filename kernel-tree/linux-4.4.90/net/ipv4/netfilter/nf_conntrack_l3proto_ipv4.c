@@ -147,6 +147,7 @@ static unsigned int ipv4_conntrack_in(void *priv,
 				      struct sk_buff *skb,
 				      const struct nf_hook_state *state)
 {
+	printk(KERN_INFO "CONNTRACK\n");
 	return nf_conntrack_in(state->net, PF_INET, state->hook, skb);
 }
 
