@@ -27,6 +27,7 @@
 #include <net/netfilter/nf_nat_l3proto.h>
 #include <net/netfilter/nf_nat_l4proto.h>
 
+extern const struct nf_nat_l4proto nf_nat_l4proto_icmp;
 static const struct nf_nat_l3proto nf_nat_l3proto_ipv4;
 
 #ifdef CONFIG_XFRM
