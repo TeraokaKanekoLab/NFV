@@ -19,6 +19,8 @@
 #include <net/netfilter/nf_nat_l4proto.h>
 #include <net/netfilter/nf_nat_core.h>
 
+extern bool nf_nat_l4proto_in_range(const struct nf_conntrack_tuple *tuple, enum nf_nat_manip_type maniptype, const union nf_conntrack_man_proto *min, const union nf_conntrack_man_proto *max);
+
 static u16 tcp_port_rover;
 
 static void
@@ -85,3 +87,6 @@ const struct nf_nat_l4proto nf_nat_l4proto_tcp = {
 #endif
 };
 EXPORT_SYMBOL(nf_nat_l4proto_tcp);
+
+MODULE_LICENSE("GPL");
+

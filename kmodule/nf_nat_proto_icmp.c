@@ -17,6 +17,8 @@
 #include <net/netfilter/nf_nat_core.h>
 #include <net/netfilter/nf_nat_l4proto.h>
 
+//extern int nf_nat_l4proto_nlattr_to_range(struct nlattr *tb[], struct nf_nat_range *range);
+
 static bool
 icmp_in_range(const struct nf_conntrack_tuple *tuple,
 	      enum nf_nat_manip_type maniptype,
@@ -82,3 +84,5 @@ const struct nf_nat_l4proto nf_nat_l4proto_icmp = {
 #endif
 };
 EXPORT_SYMBOL(nf_nat_l4proto_icmp);
+
+MODULE_LICENSE("GPL");

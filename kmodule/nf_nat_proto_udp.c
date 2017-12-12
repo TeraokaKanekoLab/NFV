@@ -76,3 +76,6 @@ const struct nf_nat_l4proto nf_nat_l4proto_udp = {
 #endif
 };
 EXPORT_SYMBOL(nf_nat_l4proto_udp);
+
+MODULE_LICENSE("GPL");
+

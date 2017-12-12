@@ -31,6 +31,8 @@
 #include <net/netfilter/nf_conntrack_zones.h>
 #include <linux/netfilter/nf_nat.h>
 
+void nf_nat_follow_master(struct nf_conn *ct, struct nf_conntrack_expect *exp) {}
+
 static DEFINE_SPINLOCK(nf_nat_lock);
 
 static DEFINE_MUTEX(nf_nat_proto_mutex);

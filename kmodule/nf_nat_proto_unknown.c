@@ -54,3 +54,6 @@ const struct nf_nat_l4proto nf_nat_l4proto_unknown = {
 	.unique_tuple		= unknown_unique_tuple,
 };
 EXPORT_SYMBOL(nf_nat_l4proto_unknown);
+
+MODULE_LICENSE("GPL");
+
