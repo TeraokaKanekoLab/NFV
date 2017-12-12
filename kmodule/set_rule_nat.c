@@ -15,6 +15,10 @@
 #include <uapi/linux/netfilter/xt_tcpudp.h>
 #include <uapi/linux/netfilter.h>
 #include <net/netfilter/nf_log.h>
+#include <uapi/linux/netfilter/nf_nat.h>
+#include <uapi/linux/netfilter/nf_conntrack_common.h>
+#include <net/netfilter/nf_conntrack.h>
+#include <net/netfilter/nf_nat.h>
 #define NETLINK_USER 31
 
 #define IPT_MIN_ALIGN (__alignof__(struct ipt_entry))
@@ -30,8 +34,59 @@ extern int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int 
 extern bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern struct list_head target_head;
+extern unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state);
 
 struct sock *nl_sk = NULL;
+
+static const struct xt_table nf_nat_ipv4_table = {
+  .name   = "nat",
+  /* .valid_hooks  = (1 << NF_INET_PRE_ROUTING) |
+    (1 << NF_INET_POST_ROUTING) |
+    (1 << NF_INET_LOCAL_OUT) |
+    (1 << NF_INET_LOCAL_IN), */
+  .valid_hooks  = (1 << NF_INET_PRE_ROUTING),
+  .me   = THIS_MODULE,
+  .af   = NFPROTO_IPV4,
+};
+
+static void xt_nat_convert_range(struct nf_nat_range *dst, const struct nf_nat_ipv4_range *src)
+{
+  memset(&dst->min_addr, 0, sizeof(dst->min_addr));
+  memset(&dst->max_addr, 0, sizeof(dst->max_addr));
+
+  dst->flags   = src->flags;
+  dst->min_addr.ip = src->min_ip;
+  dst->max_addr.ip = src->max_ip;
+  dst->min_proto   = src->min;
+  dst->max_proto   = src->max;
+}
+
+static unsigned int xt_dnat_target_v0(struct sk_buff *skb, const struct xt_action_param *par)
+{
+  const struct nf_nat_ipv4_multi_range_compat *mr = par->targinfo;
+  struct nf_nat_range range;
+  enum ip_conntrack_info ctinfo;
+  struct nf_conn *ct;
+
+  ct = nf_ct_get(skb, &ctinfo);
+  NF_CT_ASSERT(ct != NULL &&
+      (ctinfo == IP_CT_NEW || ctinfo == IP_CT_RELATED));
+
+  xt_nat_convert_range(&range, &mr->range[0]);
+  return nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
+}
+
+static int xt_nat_checkentry_v0(const struct xt_tgchk_param *par)
+{
+  const struct nf_nat_ipv4_multi_range_compat *mr = par->targinfo;
+
+  if (mr->rangesize != 1) {
+    pr_info("%s: multiple ranges no longer supported\n",
+        par->target->name);
+    return -EINVAL;
+  }
+  return 0;
+}
 
 int set_filter_rule(struct net *net)
 {
@@ -185,6 +240,15 @@ int set_nat_rule(struct net *net)
   struct xt_action_param *par;
   struct nf_nat_ipv4_multi_range_compat mr;
   struct xt_target nat_target;
+  struct ipt_replace *repl;
+
+  /* register nat table */
+  printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
+  repl = ipt_alloc_initial_table(&nf_nat_ipv4_table);
+  if (repl == NULL)
+    return -ENOMEM;
+  net->ipv4.nat_table = ipt_register_table(net, &nf_nat_ipv4_table, repl);
+  kfree(repl);
 
   /* target rule for nat (DST) */
   mr.range[0].min_ip = in_aton("10.10.9.4");
@@ -194,7 +258,7 @@ int set_nat_rule(struct net *net)
 
   /* target for nat */
   strncpy(nat_target.name, "DNAT", 4);
-  nat_target.rivision = 0;
+  nat_target.revision = 0;
   nat_target.target = xt_dnat_target_v0;
   nat_target.checkentry = xt_nat_checkentry_v0;
   nat_target.targetsize = sizeof(struct nf_nat_ipv4_multi_range_compat);
@@ -278,7 +342,7 @@ int set_nat_rule(struct net *net)
   printk(KERN_INFO "address of e->elems is 0x%08lx\n", (ulong)e->elems);
   printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
   target->u.target_size = size_ipt_entry_target;
-  memcpy(target->data, &mr, sizeof(struct nf_nat_ipv4_range_compat));
+  memcpy(target->data, &mr, sizeof(struct nf_nat_ipv4_multi_range_compat));
   target->u.kernel.target = &nat_target;
   //strcpy(target->u.user.name, "NFC");
 
@@ -373,7 +437,7 @@ static int __init nf_init(void)
     printk(KERN_ALERT "Error crating socket\n");
     return -10;
   }
-  pr_info("Set_rule module is inserterd!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+  pr_info("Set_nat_rule module is inserterd!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   return 0;
 }
 
@@ -387,6 +451,5 @@ module_init(nf_init);
 module_exit(nf_exit);
 
 MODULE_LICENSE("GPL");
-
 
 

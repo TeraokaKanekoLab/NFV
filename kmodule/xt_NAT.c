@@ -15,10 +15,11 @@
 
 static const struct xt_table nf_nat_ipv4_table = {
   .name   = "nat",
-  .valid_hooks  = (1 << NF_INET_PRE_ROUTING) |
+  /* .valid_hooks  = (1 << NF_INET_PRE_ROUTING) |
     (1 << NF_INET_POST_ROUTING) |
     (1 << NF_INET_LOCAL_OUT) |
-    (1 << NF_INET_LOCAL_IN),
+    (1 << NF_INET_LOCAL_IN), */
+  .valid_hooks  = (1 << NF_INET_PRE_ROUTING),
   .me   = THIS_MODULE,
   .af   = NFPROTO_IPV4,
 };
@@ -38,15 +39,17 @@ static int __init nf_nat_init(void)
 {
   struct net *net;
   printk(KERN_INFO "Kernel moduel NAT is inserted\n");
+
+  /*
   net = current->nsproxy->net_ns;
   printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
-  /* register nat table */
+  // register nat table 
   struct ipt_replace *repl;
   repl = ipt_alloc_initial_table(&nf_nat_ipv4_table);
   if (repl == NULL)
     return -ENOMEM;
   net->ipv4.nat_table = ipt_register_table(net, &nf_nat_ipv4_table, repl);
-  kfree(repl);
+  kfree(repl); */
   return 0;
 }
 
