@@ -1,4 +1,4 @@
-objm = network_function.o xt_tcpudp.o set_rule_nat.o
+objm = nf_nat_proto_common.o nf_nat_proto_udp.o nf_nat_proto_tcp.o nf_nat_proto_unknown.o nf_nat_core.o nf_nat_proto_icmp.o nf_nat_l3proto_ipv4.o iptable_nat.o xt_NAT.o network_function.o xt_tcpudp.o set_rule_nat.o
 
 obj-m += $(objm)
 

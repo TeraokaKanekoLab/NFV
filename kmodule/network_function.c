@@ -4,6 +4,7 @@
 #include <linux/if_arp.h>
 #include <linux/ip.h>
 #include <linux/types.h>
+#include <linux/netfilter.h>
 #include "network_function.h"
 
 /* Important: target_head is the head of the nf target list */
@@ -15,7 +16,7 @@ void init_target_list(struct list_head * i)
   INIT_LIST_HEAD(i);
 }
 
-int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int priority, char *name)
+int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb, const struct nf_hook_state *state), int priority, char *name)
 {
   struct list_head *i;
   struct nf_target *new_target = (struct nf_target *)kmalloc(sizeof(struct nf_target), GFP_KERNEL);
@@ -37,7 +38,7 @@ int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int priorit
 }
 EXPORT_SYMBOL(register_nf_target);
 
-struct list_head *search_target(unsigned int (*nf_func)(struct sk_buff *skb))
+struct list_head *search_target(unsigned int (*nf_func)(struct sk_buff *skb, const struct nf_hook_state *state))
 {
   struct list_head *i;
   for (i = target_head.next; i != &target_head; i = i->next) {
@@ -48,7 +49,7 @@ struct list_head *search_target(unsigned int (*nf_func)(struct sk_buff *skb))
   return NULL;
 }
 
-void unregister_nf_target(unsigned int (*nf_func)(struct sk_buff *skb))
+void unregister_nf_target(unsigned int (*nf_func)(struct sk_buff *skb, const struct nf_hook_state *state))
 {
   struct list_head *i;
   struct nf_target *target;

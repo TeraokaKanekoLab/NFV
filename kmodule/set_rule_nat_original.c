@@ -30,7 +30,7 @@
 
 extern __be32 in_aton(const char *str);
 extern unsigned int nf1_func(struct sk_buff *skb);
-extern int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb, const struct nf_hook_state *state), int priority, char *name);
+extern int register_nf_target(unsigned int (*nf_func)(struct sk_buff *skb), int priority, char *name);
 extern bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern struct list_head target_head;
@@ -44,7 +44,7 @@ static const struct xt_table nf_nat_ipv4_table = {
     (1 << NF_INET_POST_ROUTING) |
     (1 << NF_INET_LOCAL_OUT) |
     (1 << NF_INET_LOCAL_IN), */
-  .valid_hooks  = (1 << NF_INET_PRE_ROUTING) | (1 << NF_INET_LOCAL_OUT),
+  .valid_hooks  = (1 << NF_INET_PRE_ROUTING),
   .me   = THIS_MODULE,
   .af   = NFPROTO_IPV4,
 };
@@ -85,12 +85,6 @@ static int xt_nat_checkentry_v0(const struct xt_tgchk_param *par)
         par->target->name);
     return -EINVAL;
   }
-  return 0;
-}
-
-static unsigned int nat_confirm(struct sk_buff *skb, const struct xt_action_param *par)
-{
-  printk(KERN_INFO "Passing through NAT NF\n");
   return 0;
 }
 
@@ -246,31 +240,14 @@ int set_nat_rule(struct net *net)
   struct nf_nat_ipv4_multi_range_compat mr;
   struct xt_target nat_target;
   struct ipt_replace *repl;
-  struct xt_table *test_table;
 
   /* register nat table */
-  printk(KERN_INFO "Going to register table in %u\n", net->ns.inum);
+  printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
   repl = ipt_alloc_initial_table(&nf_nat_ipv4_table);
-  if (repl == NULL) {
-    printk(KERN_INFO "Could not allocate table\n");
+  if (repl == NULL)
     return -ENOMEM;
-  }
-  //net->ipv4.nat_table = ipt_register_table(net, &nf_nat_ipv4_table, repl);
-  if(!(net->ipv4.nat_table)) {
-    printk(KERN_INFO "no member nat_table\n");
-  }
-  printk(KERN_INFO "address of nat_table is 0x%08lx\n", net->ipv4.nat_table);
-  test_table = ipt_register_table(net, &nf_nat_ipv4_table, repl);
+  net->ipv4.nat_table = ipt_register_table(net, &nf_nat_ipv4_table, repl);
   kfree(repl);
-
-  /*
-  table = net->ipv4.nat_table;
-  private = table->private;
-  table_base = private->entries;
- 
-  printk(KERN_INFO "address of nat table_base is 0x%08lx\n", (ulong)table_base);
-  printk(KERN_INFO "address of nat table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
-  */
 
   /* target rule for nat (DST) */
   mr.range[0].min_ip = in_aton("10.10.9.4");
@@ -281,13 +258,12 @@ int set_nat_rule(struct net *net)
   /* target for nat */
   strncpy(nat_target.name, "DNAT", 4);
   nat_target.revision = 0;
-  //nat_target.target = xt_dnat_target_v0;
-  nat_target.target = nat_confirm;
+  nat_target.target = xt_dnat_target_v0;
   nat_target.checkentry = xt_nat_checkentry_v0;
   nat_target.targetsize = sizeof(struct nf_nat_ipv4_multi_range_compat);
   nat_target.family = NFPROTO_IPV4;
   strncpy(nat_target.table, "nat", 3);
-  nat_target.hooks = (1 << NF_INET_PRE_ROUTING) | (1 << NF_INET_LOCAL_OUT);
+  nat_target.hooks = (1 << NF_INET_POST_ROUTING) | (1 << NF_INET_LOCAL_IN);
 
   size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
   size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
@@ -297,7 +273,14 @@ int set_nat_rule(struct net *net)
 
   //total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
   total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp + size_ipt_entry_target;
-  
+
+  table = net->ipv4.nat_table;
+  private = table->private;
+  table_base = private->entries;
+ 
+  printk(KERN_INFO "address of nat table_base is 0x%08lx\n", (ulong)table_base);
+  printk(KERN_INFO "address of nat table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
+
   e = kmalloc(total_length, GFP_KERNEL);
   if (e == NULL) {
 	  printk(KERN_ERR "Failed to allocate memory");
@@ -362,7 +345,7 @@ int set_nat_rule(struct net *net)
   target->u.kernel.target = &nat_target;
   //strcpy(target->u.user.name, "NFC");
 
-  //memcpy(table_base, e, total_length);
+  memcpy(table_base, e, total_length);
 
   /* Set the last rule to stop the rule checking iteration */
   //total_length1 = size_ipt_entry + size_ipt_entry_target;
@@ -392,13 +375,12 @@ int set_nat_rule(struct net *net)
   st_target->target.u.target_size = size_ipt_entry_target;
   strcpy(st_target->target.u.user.name, "ACCEPT"); 
 
-  //memcpy(table_base + total_length, last_e, total_length1);
-  //printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
-  //printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
+  memcpy(table_base + total_length, last_e, total_length1);
+  printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
+  printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
 
   /* Insert nf_target struct to the list */
   return register_nf_target(nf_nat_func, -200, "NAT");
-  //return 0;
 }
 
 static void init_rule(struct sk_buff *skb)
@@ -415,15 +397,14 @@ static void init_rule(struct sk_buff *skb)
   net = current->nsproxy->net_ns;
   printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
 
+  if ((err = set_filter_rule(net)) < 0) {
+    printk(KERN_ERR "Could not register filter rule\n");
+  }
+  
   if ((err = set_nat_rule(net)) < 0) {
     printk(KERN_ERR "Could not register nat rule\n");
   }
-
-   /*
-  if ((err = set_filter_rule(net)) < 0) {
-    printk(KERN_ERR "Could not register filter rule\n");
-  }*/
-  
+   
   msg_size = strlen(msg);
 
   nlh = (struct nlmsghdr *)skb->data;
