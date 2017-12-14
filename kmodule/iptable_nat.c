@@ -122,15 +122,19 @@ static struct pernet_operations iptable_nat_net_ops = {
 static int __init iptable_nat_init(void)
 {
 	int err;
+  
+  err = 0;
 
 	err = register_pernet_subsys(&iptable_nat_net_ops);
 	if (err < 0)
 		goto err1;
 
-	err = nf_register_hooks(nf_nat_ipv4_ops, ARRAY_SIZE(nf_nat_ipv4_ops));
+/*	err = nf_register_hooks(nf_nat_ipv4_ops, ARRAY_SIZE(nf_nat_ipv4_ops));
 	if (err < 0)
 		goto err2;
-	return 0;
+	return 0; 
+  */
+  return 0;
 
 err2:
 	unregister_pernet_subsys(&iptable_nat_net_ops);

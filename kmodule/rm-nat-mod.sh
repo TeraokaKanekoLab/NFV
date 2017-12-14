@@ -1,0 +1,11 @@
+rmmod xt_NAT
+rmmod iptable_nat
+rmmod nf_nat_l3proto_ipv4
+rmmod nf_nat_proto_icmp
+rmmod nf_nat_core
+rmmod nf_nat_proto_unknown
+rmmod nf_nat_proto_tcp
+rmmod nf_nat_proto_udp
+rmmod nf_nat_proto_common
+
+
