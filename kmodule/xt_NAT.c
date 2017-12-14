@@ -30,7 +30,7 @@ unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state)
 {
   int ret = 1;
   printk(KERN_INFO "Starting NAT...\n");
-  //ret = iptable_nat_ipv4_in(NULL, skb, state);
+  ret = iptable_nat_ipv4_in(NULL, skb, state);
   return ret;
 }
 EXPORT_SYMBOL(nf_nat_func);

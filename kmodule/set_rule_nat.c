@@ -68,6 +68,7 @@ static unsigned int xt_dnat_target_v0(struct sk_buff *skb, const struct xt_actio
   enum ip_conntrack_info ctinfo;
   struct nf_conn *ct;
 
+  printk(KERN_INFO "NAT's target\n");
   ct = nf_ct_get(skb, &ctinfo);
   NF_CT_ASSERT(ct != NULL &&
       (ctinfo == IP_CT_NEW || ctinfo == IP_CT_RELATED));
@@ -275,7 +276,6 @@ int set_nat_rule(struct net *net)
 
   printk(KERN_INFO "Read the nat table\n");
 
-#if 0 
   //printk(KERN_INFO "address of nat table_base is 0x%08lx\n", (ulong)table_base);
   //printk(KERN_INFO "address of nat table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
 
@@ -288,8 +288,8 @@ int set_nat_rule(struct net *net)
   /* target for nat */
   strncpy(nat_target.name, "DNAT", 4);
   nat_target.revision = 0;
-  //nat_target.target = xt_dnat_target_v0;
-  nat_target.target = nat_confirm;
+  nat_target.target = xt_dnat_target_v0;
+  //nat_target.target = nat_confirm;
   nat_target.checkentry = xt_nat_checkentry_v0;
   nat_target.targetsize = sizeof(struct nf_nat_ipv4_multi_range_compat);
   nat_target.family = NFPROTO_IPV4;
@@ -370,7 +370,7 @@ int set_nat_rule(struct net *net)
   target->u.kernel.target = &nat_target;
   //strcpy(target->u.user.name, "NFC");
 
-  //memcpy(table_base, e, total_length);
+  memcpy(table_base, e, total_length);
 
   /* Set the last rule to stop the rule checking iteration */
   //total_length1 = size_ipt_entry + size_ipt_entry_target;
@@ -400,13 +400,10 @@ int set_nat_rule(struct net *net)
   st_target->target.u.target_size = size_ipt_entry_target;
   strcpy(st_target->target.u.user.name, "ACCEPT"); 
 
-  //memcpy(table_base + total_length, last_e, total_length1);
+  memcpy(table_base + total_length, last_e, total_length1);
   //printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
   //printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
 
-  /* Insert nf_target struct to the list */
-  //return register_nf_target(nf_nat_func, -200, "NAT");
-#endif
   return 0;
 }
 
