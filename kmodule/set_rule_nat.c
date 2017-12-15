@@ -246,7 +246,8 @@ int set_nat_rule(struct net *net)
   unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target, size_ipt_udp, size_ipt_tcp, total_length, total_length1;
   struct xt_action_param *par;
   struct nf_nat_ipv4_multi_range_compat mr;
-  struct xt_target nat_target;
+//  struct xt_target nat_target;
+  struct xt_target *nat_target;
   struct ipt_replace *repl;
   struct xt_table *test_table;
   
@@ -286,16 +287,21 @@ int set_nat_rule(struct net *net)
   mr.range[0].max.all = ntohs(0x1c8);
 
   /* target for nat */
-  strncpy(nat_target.name, "DNAT", 4);
-  nat_target.revision = 0;
-  nat_target.target = xt_dnat_target_v0;
+  nat_target = kmalloc(sizeof(struct xt_target), GFP_KERNEL);
+  memset(nat_target, 0, sizeof(struct xt_target));
+//  strncpy(nat_target->name, "DNAT", 4);
+//  nat_target->name = "DNAT";
+  nat_target->revision = 0;
+  nat_target->target = xt_dnat_target_v0;
   //nat_target.target = nat_confirm;
-  nat_target.checkentry = xt_nat_checkentry_v0;
-  nat_target.targetsize = sizeof(struct nf_nat_ipv4_multi_range_compat);
-  nat_target.family = NFPROTO_IPV4;
-  strncpy(nat_target.table, "nat", 3);
+  nat_target->checkentry = xt_nat_checkentry_v0;
+  nat_target->targetsize = sizeof(struct nf_nat_ipv4_multi_range_compat);
+  nat_target->family = NFPROTO_IPV4;
+ // nat_target->table = "nat";
+//  strncpy(nat_target->table, "nat", 3);
   //nat_target.hooks = (1 << NF_INET_PRE_ROUTING) | (1 << NF_INET_LOCAL_OUT);
-  nat_target.hooks = (1 << NF_INET_PRE_ROUTING);
+  nat_target->hooks = (1 << NF_INET_PRE_ROUTING);
+  nat_target->me = THIS_MODULE;
 
   size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
   size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
@@ -367,7 +373,7 @@ int set_nat_rule(struct net *net)
   printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
   target->u.target_size = size_ipt_entry_target;
   memcpy(target->data, &mr, sizeof(struct nf_nat_ipv4_multi_range_compat));
-  target->u.kernel.target = &nat_target;
+  target->u.kernel.target = nat_target;
   //strcpy(target->u.user.name, "NFC");
 
   memcpy(table_base, e, total_length);
