@@ -321,6 +321,7 @@ get_unique_tuple(struct nf_conntrack_tuple *tuple,
 	 */
 	if (maniptype == NF_NAT_MANIP_SRC &&
 	    !(range->flags & NF_NAT_RANGE_PROTO_RANDOM_ALL)) {
+    printk(KERN_INFO "MANIP_SRC in get_unique_tuple\n");
 		/* try the original tuple first */
 		if (in_range(l3proto, l4proto, orig_tuple, range)) {
 			if (!nf_nat_used_tuple(orig_tuple, ct)) {
@@ -357,6 +358,7 @@ get_unique_tuple(struct nf_conntrack_tuple *tuple,
 		}
 	}
 
+  printk(KERN_INFO "l4proto->unique_tuple\n");
 	/* Last change: get protocol to try to obtain unique tuple. */
 	l4proto->unique_tuple(l3proto, tuple, range, maniptype, ct);
 out:
@@ -387,8 +389,10 @@ nf_nat_setup_info(struct nf_conn *ct,
 
 	/* nat helper or nfctnetlink also setup binding */
 	nat = nf_ct_nat_ext_add(ct);
-	if (nat == NULL)
+	if (nat == NULL) {
+    printk(KERN_INFO "nf_ct_ext_add(ct) returned NULL\n");
 		return NF_ACCEPT;
+  } 
 
 	NF_CT_ASSERT(maniptype == NF_NAT_MANIP_SRC ||
 		     maniptype == NF_NAT_MANIP_DST);
@@ -405,6 +409,7 @@ nf_nat_setup_info(struct nf_conn *ct,
 	get_unique_tuple(&new_tuple, &curr_tuple, range, ct, maniptype);
 
 	if (!nf_ct_tuple_equal(&new_tuple, &curr_tuple)) {
+    printk(KERN_INFO "!(nf_ct_tuple_equal)\n");
 		struct nf_conntrack_tuple reply;
 
 		/* Alter conntrack table so will recognize replies. */
@@ -422,6 +427,7 @@ nf_nat_setup_info(struct nf_conn *ct,
 	}
 
 	if (maniptype == NF_NAT_MANIP_SRC) {
+    printk(KERN_INFO "MANIP_SRC in nf_nat_setup_info\n");
 		unsigned int srchash;
 
 		srchash = hash_by_src(net,
@@ -483,14 +489,19 @@ unsigned int nf_nat_packet(struct nf_conn *ct,
 	unsigned long statusbit;
 	enum nf_nat_manip_type mtype = HOOK2MANIP(hooknum);
 
-	if (mtype == NF_NAT_MANIP_SRC)
+	if (mtype == NF_NAT_MANIP_SRC) {
+    printk(KERN_INFO "MANIP_SRC\n");
 		statusbit = IPS_SRC_NAT;
-	else
+  } else {
+    printk(KERN_INFO "MANIP_DST\n");
 		statusbit = IPS_DST_NAT;
+  }
 
 	/* Invert if this is reply dir. */
-	if (dir == IP_CT_DIR_REPLY)
+	if (dir == IP_CT_DIR_REPLY) {
+    printk(KERN_INFO "DIR_REPLY\n");
 		statusbit ^= IPS_NAT_MASK;
+  }
 
 	/* Non-atomic: these bits don't change. */
 	if (ct->status & statusbit) {
@@ -502,8 +513,10 @@ unsigned int nf_nat_packet(struct nf_conn *ct,
 		l3proto = __nf_nat_l3proto_find(target.src.l3num);
 		l4proto = __nf_nat_l4proto_find(target.src.l3num,
 						target.dst.protonum);
-		if (!l3proto->manip_pkt(skb, 0, l4proto, &target, mtype))
+		if (!l3proto->manip_pkt(skb, 0, l4proto, &target, mtype)) {
+      printk(KERN_INFO "l3proto->manip_pkt failed\n");
 			return NF_DROP;
+    }
 	}
 	return NF_ACCEPT;
 }

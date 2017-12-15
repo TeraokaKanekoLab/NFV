@@ -437,7 +437,7 @@ ipt_do_table(struct sk_buff *skb,
       /* iterate all the nf targets in the list */
       i = target_head.next;
       do {
-        t_verdict = ((struct nf_target *)i)->nf_func(skb);
+        t_verdict = ((struct nf_target *)i)->nf_func(skb, state);
         printk(KERN_INFO "t_verdict is %u\n", t_verdict);
         if (t_verdict == NF_DROP) {
           break;
