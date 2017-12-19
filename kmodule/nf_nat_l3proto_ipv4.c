@@ -269,6 +269,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 	struct nf_conn_nat *nat;
 	/* maniptype == SRC for postrouting. */
 	enum nf_nat_manip_type maniptype = HOOK2MANIP(state->hook);
+  unsigned int ret;
 
 	/* We never see fragments: conntrack defrags on pre-routing
 	 * and local-out, and nf_nat_out protects post-routing.
@@ -281,16 +282,25 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 	 * packet filter it out, or implement conntrack/NAT for that
 	 * protocol. 8) --RR
 	 */
-	if (!ct)
+	if (!ct) {
+    printk(KERN_INFO "No connection tracking info\n");
 		return NF_ACCEPT;
+  }
 
 	/* Don't try to NAT if this packet is not conntracked */
-	if (nf_ct_is_untracked(ct))
+	if (nf_ct_is_untracked(ct)) {
+    printk(KERN_INFO "nf_ct_is_untracked\n");
 		return NF_ACCEPT;
+  }
 
 	nat = nf_ct_nat_ext_add(ct);
-	if (nat == NULL)
-		return NF_ACCEPT;
+	if (nat == NULL) {
+    printk(KERN_INFO "nat = nf_ct_nat_ext_add(ct)\n");
+		//return NF_ACCEPT;
+  }
+
+  /* check if nat table search works */
+	//ret = do_chain(priv, skb, state, ct);
 
 	switch (ctinfo) {
 	case IP_CT_RELATED:
@@ -310,35 +320,42 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 		if (!nf_nat_initialized(ct, maniptype)) {
 			unsigned int ret;
 
+      printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
 			ret = do_chain(priv, skb, state, ct);
-			if (ret != NF_ACCEPT)
+			if (ret != NF_ACCEPT) {
+        printk(KERN_INFO "ret was not ACCEPT\n");
 				return ret;
+      }
 
 			if (nf_nat_initialized(ct, HOOK2MANIP(state->hook)))
 				break;
 
 			ret = nf_nat_alloc_null_binding(ct, state->hook);
-			if (ret != NF_ACCEPT)
+			if (ret != NF_ACCEPT) {
+        printk(KERN_INFO "ret was not ACCEPT after nf_nat_alloc_null_binding\n");
 				return ret;
+      }
 		} else {
-			pr_debug("Already setup manip %s for ct %p\n",
+			printk(KERN_INFO "Already setup manip %s for ct %p\n",
 				 maniptype == NF_NAT_MANIP_SRC ? "SRC" : "DST",
 				 ct);
-			if (nf_nat_oif_changed(state->hook, ctinfo, nat,
+			/*if (nf_nat_oif_changed(state->hook, ctinfo, nat,
 					       state->out))
-				goto oif_changed;
+				goto oif_changed; */
 		}
 		break;
 
 	default:
 		/* ESTABLISHED */
+    printk(KERN_INFO "Established\n");
 		NF_CT_ASSERT(ctinfo == IP_CT_ESTABLISHED ||
 			     ctinfo == IP_CT_ESTABLISHED_REPLY);
-		if (nf_nat_oif_changed(state->hook, ctinfo, nat, state->out))
-			goto oif_changed;
+		/*if (nf_nat_oif_changed(state->hook, ctinfo, nat, state->out))
+			goto oif_changed;*/
 	}
 
-	return nf_nat_packet(ct, ctinfo, state->hook, skb);
+  return NF_ACCEPT;
+	//return nf_nat_packet(ct, ctinfo, state->hook, skb);
 
 oif_changed:
 	nf_ct_kill_acct(ct, ctinfo, skb);
