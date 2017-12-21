@@ -299,9 +299,6 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 		//return NF_ACCEPT;
   }
 
-  /* check if nat table search works */
-	//ret = do_chain(priv, skb, state, ct);
-
 	switch (ctinfo) {
 	case IP_CT_RELATED:
 	case IP_CT_RELATED_REPLY:
@@ -321,6 +318,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			unsigned int ret;
 
       printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
+      /*
 			ret = do_chain(priv, skb, state, ct);
 			if (ret != NF_ACCEPT) {
         printk(KERN_INFO "ret was not ACCEPT\n");
@@ -334,7 +332,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			if (ret != NF_ACCEPT) {
         printk(KERN_INFO "ret was not ACCEPT after nf_nat_alloc_null_binding\n");
 				return ret;
-      }
+      } */
 		} else {
 			printk(KERN_INFO "Already setup manip %s for ct %p\n",
 				 maniptype == NF_NAT_MANIP_SRC ? "SRC" : "DST",

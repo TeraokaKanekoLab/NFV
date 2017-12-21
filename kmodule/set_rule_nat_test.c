@@ -38,6 +38,16 @@ extern unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state 
 
 struct sock *nl_sk = NULL;
 
+struct ipt_entry *ipt_next_entry(const struct ipt_entry *entry)
+{
+  return (void *)entry + entry->next_offset;
+}
+
+struct ipt_entry *get_entry(const void *base, unsigned int offset)
+{
+    return (struct ipt_entry *)(base + offset);
+}
+
 static const struct xt_table nf_nat_ipv4_table = {
   .name   = "nat",
   /* .valid_hooks  = (1 << NF_INET_PRE_ROUTING) |
@@ -239,8 +249,8 @@ int set_nat_rule(struct net *net)
   const void *table_base;
   struct ipt_entry *e, *last_e;
   struct ipt_entry_match * match_proto;
-  struct ipt_entry_target * target;
-  struct xt_standard_target * st_target;
+  struct ipt_entry_target *target;
+  struct xt_standard_target *st_target;
   struct ipt_udp * udpinfo;
   struct ipt_tcp * tcpinfo;
   unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target, size_ipt_udp, size_ipt_tcp, total_length, total_length1;
@@ -251,6 +261,7 @@ int set_nat_rule(struct net *net)
   struct xt_target *nat_target;
   struct ipt_replace *repl;
   struct xt_table *test_table;
+  struct ipt_entry_target *t;
   
   register_nf_target(nf_nat_func, -200, "NAT");
 
@@ -278,8 +289,8 @@ int set_nat_rule(struct net *net)
 
   printk(KERN_INFO "Read the nat table\n");
 
-  //printk(KERN_INFO "address of nat table_base is 0x%08lx\n", (ulong)table_base);
-  //printk(KERN_INFO "address of nat table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
+  printk(KERN_INFO "address of nat table_base is 0x%08lx\n", (ulong)table_base);
+  printk(KERN_INFO "address of nat table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
 
   mr = kmalloc(sizeof(struct nf_nat_ipv4_multi_range_compat), GFP_KERNEL);
   /* target rule for nat (DST) */
@@ -380,6 +391,15 @@ int set_nat_rule(struct net *net)
 
   memcpy(table_base, e, total_length);
 
+  /* Test */
+  e = get_entry(table_base, private->hook_entry[hook]);
+  t = ipt_get_target(e);
+  if(t) {
+    printk(KERN_INFO "Address of First target is 0x%08lx\n", t);
+  } else {
+    printk(KERN_INFO "t is nulll\n");
+  }
+
   /* Set the last rule to stop the rule checking iteration */
   //total_length1 = size_ipt_entry + size_ipt_entry_target;
   total_length1 = size_ipt_entry + IPT_ALIGN(sizeof(struct xt_standard_target));
@@ -411,8 +431,79 @@ int set_nat_rule(struct net *net)
   memcpy(table_base + total_length, last_e, total_length1);
   //printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
   //printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
+  
+  e = ipt_next_entry(e);
+  if(e) {
+    printk(KERN_INFO "Address of next entry is 0x%08lx (nat)\n", e);
+  }
 
   return 0;
+}
+
+unsigned int ipt_do_table_test(struct net *net)
+{
+  struct xt_action_param acpar;
+  const void *table_base;
+  struct xt_table *table;
+  unsigned int verdict = NF_DROP;
+  const struct xt_table_info *private;
+  unsigned int hook = NF_INET_PRE_ROUTING;
+  struct ipt_entry *e;
+  struct xt_entry_target *t;
+  struct sk_buff *skb;
+
+  table = net->ipv4.nat_table;
+  private = table->private;
+  table_base = private->entries;
+
+  e = get_entry(table_base, private->hook_entry[hook]);
+  t = ipt_get_target(e);
+
+  acpar.hotdrop = false;
+
+  if(!t->u.kernel.target) {
+    printk(KERN_INFO "NF function is set Likely\n");
+    return 0;
+  } 
+  if (!t->data) {
+    printk(KERN_INFO "target data is not set Likely\n");
+    return 0;
+  }
+  if (!t->u.kernel.target->target) {
+    printk(KERN_INFO "target function is not set Likely\n");
+    return 0;
+  }
+
+  do {
+    if(!t->u.kernel.target) {
+      printk(KERN_INFO "NF function\n");
+    } else if (!t->u.kernel.target->target) {
+      printk(KERN_INFO "Standard target\n");
+    }
+
+    if(!t->u.kernel.target) {
+      printk(KERN_INFO "NF function verdict\n");
+    } else {
+      acpar.target = t->u.kernel.target;
+      acpar.targinfo = t->data;
+
+      verdict = t->u.kernel.target->target(skb, &acpar);
+      if (verdict == XT_CONTINUE) {
+        printk(KERN_INFO "continue\n");
+        e = ipt_next_entry(e);
+      } else {
+        printk(KERN_INFO "Nat is finished\n");
+        break;
+      }
+    }
+  } while (!acpar.hotdrop);
+  
+  if (acpar.hotdrop) {
+    return NF_DROP;
+  } else {
+    return verdict;
+  }
+  return NF_ACCEPT;
 }
 
 static void init_rule(struct sk_buff *skb)
@@ -425,6 +516,7 @@ static void init_rule(struct sk_buff *skb)
   int res;
   struct net *net;
   int err;
+  unsigned int verdict;
 
   net = current->nsproxy->net_ns;
   printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
@@ -435,8 +527,12 @@ static void init_rule(struct sk_buff *skb)
 
   if ((err = set_filter_rule(net)) < 0) {
     printk(KERN_ERR "Could not register filter rule\n");
-  }
-  
+  } 
+ 
+  /* 
+  verdict = ipt_do_table_test(net);
+  printk(KERN_INFO "Verdict is %u in init_rule\n", verdict); */
+
   msg_size = strlen(msg);
 
   nlh = (struct nlmsghdr *)skb->data;
