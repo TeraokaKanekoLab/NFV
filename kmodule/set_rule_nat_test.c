@@ -110,7 +110,7 @@ int set_filter_rule(struct net *net)
   unsigned int hook = NF_INET_PRE_ROUTING;
   struct xt_table *table;
   struct xt_table_info *private;
-  const void *table_base;
+  void *table_base;
   struct ipt_entry *e, *last_e;
   struct ipt_entry_match * match_proto;
   struct ipt_entry_target * target;
@@ -235,8 +235,8 @@ int set_filter_rule(struct net *net)
   strcpy(st_target->target.u.user.name, "ACCEPT"); 
 
   memcpy(table_base + total_length, last_e, total_length1);
-  printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
-  printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
+//  printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
+//  printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
 
   return 0;
 }
@@ -246,7 +246,7 @@ int set_nat_rule(struct net *net)
   unsigned int hook = NF_INET_PRE_ROUTING;
   struct xt_table *table;
   struct xt_table_info *private;
-  const void *table_base;
+  void *table_base;
   struct ipt_entry *e, *last_e;
   struct ipt_entry_match * match_proto;
   struct ipt_entry_target *target;
@@ -263,7 +263,7 @@ int set_nat_rule(struct net *net)
   struct xt_table *test_table;
   struct ipt_entry_target *t;
   
-  register_nf_target(nf_nat_func, -200, "NAT");
+  //register_nf_target(nf_nat_func, -200, "NAT");
 
   /* register nat table 
   printk(KERN_INFO "Going to register table in %u\n", net->ns.inum);
@@ -437,6 +437,7 @@ int set_nat_rule(struct net *net)
     printk(KERN_INFO "Address of next entry is 0x%08lx (nat)\n", e);
   }
 
+  register_nf_target(nf_nat_func, -200, "NAT");
   return 0;
 }
 
@@ -521,14 +522,17 @@ static void init_rule(struct sk_buff *skb)
   net = current->nsproxy->net_ns;
   printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
 
+  /*
   if ((err = set_nat_rule(net)) < 0) {
     printk(KERN_ERR "Could not register nat rule\n");
-  }
+  } */
+
+  register_nf_target(nf_nat_func, -200, "NAT");
 
   if ((err = set_filter_rule(net)) < 0) {
     printk(KERN_ERR "Could not register filter rule\n");
   } 
- 
+
   /* 
   verdict = ipt_do_table_test(net);
   printk(KERN_INFO "Verdict is %u in init_rule\n", verdict); */

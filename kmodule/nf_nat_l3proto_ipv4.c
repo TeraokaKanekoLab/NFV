@@ -29,6 +29,19 @@
 
 extern const struct nf_nat_l4proto nf_nat_l4proto_icmp;
 static const struct nf_nat_l3proto nf_nat_l3proto_ipv4;
+extern unsigned int nf_nat_setup_info(struct nf_conn *ct, const struct nf_nat_range *range, enum nf_nat_manip_type maniptype);
+
+static void xt_nat_convert_range(struct nf_nat_range *dst, const struct nf_nat_ipv4_range *src)
+{
+  memset(&dst->min_addr, 0, sizeof(dst->min_addr));
+  memset(&dst->max_addr, 0, sizeof(dst->max_addr));
+
+  dst->flags   = src->flags;
+  dst->min_addr.ip = src->min_ip;
+  dst->max_addr.ip = src->max_ip;
+  dst->min_proto   = src->min;
+  dst->max_proto   = src->max;
+}
 
 #ifdef CONFIG_XFRM
 static void nf_nat_ipv4_decode_session(struct sk_buff *skb,
@@ -259,10 +272,7 @@ EXPORT_SYMBOL_GPL(nf_nat_icmp_reply_translation);
 unsigned int
 nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 	       const struct nf_hook_state *state,
-	       unsigned int (*do_chain)(void *priv,
-					struct sk_buff *skb,
-					const struct nf_hook_state *state,
-					struct nf_conn *ct))
+	       struct nf_nat_ipv4_multi_range_compat *mr)
 {
 	struct nf_conn *ct;
 	enum ip_conntrack_info ctinfo;
@@ -270,6 +280,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 	/* maniptype == SRC for postrouting. */
 	enum nf_nat_manip_type maniptype = HOOK2MANIP(state->hook);
   unsigned int ret;
+  struct nf_nat_range range;
 
 	/* We never see fragments: conntrack defrags on pre-routing
 	 * and local-out, and nf_nat_out protects post-routing.
@@ -296,7 +307,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 	nat = nf_ct_nat_ext_add(ct);
 	if (nat == NULL) {
     printk(KERN_INFO "nat = nf_ct_nat_ext_add(ct)\n");
-		//return NF_ACCEPT;
+		return NF_ACCEPT;
   }
 
 	switch (ctinfo) {
@@ -318,8 +329,11 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			unsigned int ret;
 
       printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
-      /*
-			ret = do_chain(priv, skb, state, ct);
+			//ret = do_chain(priv, skb, state, ct);
+      /* NAT target */
+      xt_nat_convert_range(&range, &mr->range[0]);
+      ret = nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
+
 			if (ret != NF_ACCEPT) {
         printk(KERN_INFO "ret was not ACCEPT\n");
 				return ret;
@@ -332,7 +346,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			if (ret != NF_ACCEPT) {
         printk(KERN_INFO "ret was not ACCEPT after nf_nat_alloc_null_binding\n");
 				return ret;
-      } */
+      } 
 		} else {
 			printk(KERN_INFO "Already setup manip %s for ct %p\n",
 				 maniptype == NF_NAT_MANIP_SRC ? "SRC" : "DST",
