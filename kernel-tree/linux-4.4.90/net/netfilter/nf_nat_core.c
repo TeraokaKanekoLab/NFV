@@ -304,6 +304,7 @@ get_unique_tuple(struct nf_conntrack_tuple *tuple,
 	const struct nf_nat_l4proto *l4proto;
 	struct net *net = nf_ct_net(ct);
 
+  printk(KERN_INFO "get_unique_tuple\n");
 	zone = nf_ct_zone(ct);
 
 	rcu_read_lock();
@@ -386,6 +387,8 @@ nf_nat_setup_info(struct nf_conn *ct,
 	struct net *net = nf_ct_net(ct);
 	struct nf_conntrack_tuple curr_tuple, new_tuple;
 	struct nf_conn_nat *nat;
+
+    printk(KERN_INFO "nf_nat_setup_info is called\n");
 
 	/* nat helper or nfctnetlink also setup binding */
 	nat = nf_ct_nat_ext_add(ct);
