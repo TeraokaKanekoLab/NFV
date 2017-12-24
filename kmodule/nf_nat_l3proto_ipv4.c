@@ -29,6 +29,21 @@
 
 extern const struct nf_nat_l4proto nf_nat_l4proto_icmp;
 static const struct nf_nat_l3proto nf_nat_l3proto_ipv4;
+extern unsigned int nf_nat_setup_info(struct nf_conn *ct, const struct nf_nat_range *range, enum nf_nat_manip_type maniptype);
+
+static void xt_nat_convert_range(struct nf_nat_range *dst, const struct nf_nat_ipv4_range *src)
+{
+  printk(KERN_INFO "xt_nat_convert_range started \n");
+  memset(&dst->min_addr, 0, sizeof(dst->min_addr));
+  memset(&dst->max_addr, 0, sizeof(dst->max_addr));
+
+  dst->flags   = src->flags;
+  dst->min_addr.ip = src->min_ip;
+  dst->max_addr.ip = src->max_ip;
+  dst->min_proto   = src->min;
+  dst->max_proto   = src->max;
+  printk(KERN_INFO "xt_nat_convert_range is going to finish\n");
+}
 
 #ifdef CONFIG_XFRM
 static void nf_nat_ipv4_decode_session(struct sk_buff *skb,
@@ -257,12 +272,9 @@ int nf_nat_icmp_reply_translation(struct sk_buff *skb,
 EXPORT_SYMBOL_GPL(nf_nat_icmp_reply_translation);
 
 unsigned int
-nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
+nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
 	       const struct nf_hook_state *state,
-	       unsigned int (*do_chain)(void *priv,
-					struct sk_buff *skb,
-					const struct nf_hook_state *state,
-					struct nf_conn *ct))
+	       struct nf_nat_ipv4_multi_range_compat *mr)
 {
 	struct nf_conn *ct;
 	enum ip_conntrack_info ctinfo;
@@ -270,6 +282,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 	/* maniptype == SRC for postrouting. */
 	enum nf_nat_manip_type maniptype = HOOK2MANIP(state->hook);
   unsigned int ret;
+  struct nf_nat_range range;
 
 	/* We never see fragments: conntrack defrags on pre-routing
 	 * and local-out, and nf_nat_out protects post-routing.
@@ -296,12 +309,15 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 	nat = nf_ct_nat_ext_add(ct);
 	if (nat == NULL) {
     printk(KERN_INFO "nat = nf_ct_nat_ext_add(ct)\n");
-		//return NF_ACCEPT;
+		return NF_ACCEPT;
   }
 
 	switch (ctinfo) {
 	case IP_CT_RELATED:
+      printk(KERN_INFO "IP_CT_RELATED_REPLAY\n");
+      break;
 	case IP_CT_RELATED_REPLY:
+      printk(KERN_INFO "IP_CT_RELATED_REPLAY\n");
 		if (ip_hdr(skb)->protocol == IPPROTO_ICMP) {
 			if (!nf_nat_icmp_reply_translation(skb, ct, ctinfo,
 							   state->hook))
@@ -309,8 +325,10 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			else
 				return NF_ACCEPT;
 		}
+    break;
 		/* Fall thru... (Only ICMPs can be IP_CT_IS_REPLY) */
 	case IP_CT_NEW:
+    printk(KERN_INFO "IP_CT_NEW\n");
 		/* Seen it before?  This can happen for loopback, retrans,
 		 * or local packets.
 		 */
@@ -318,8 +336,13 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			unsigned int ret;
 
       printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
-      /*
-			ret = do_chain(priv, skb, state, ct);
+			//ret = do_chain(priv, skb, state, ct);
+      /* NAT target */
+      xt_nat_convert_range(&range, &mr->range[0]);
+      printk(KERN_INFO "xt_nat_convert_range is finished\n");
+      ret = nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
+      printk(KERN_INFO "nf_nat_setup_info is finished\n");
+
 			if (ret != NF_ACCEPT) {
         printk(KERN_INFO "ret was not ACCEPT\n");
 				return ret;
@@ -332,7 +355,7 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			if (ret != NF_ACCEPT) {
         printk(KERN_INFO "ret was not ACCEPT after nf_nat_alloc_null_binding\n");
 				return ret;
-      } */
+      } 
 		} else {
 			printk(KERN_INFO "Already setup manip %s for ct %p\n",
 				 maniptype == NF_NAT_MANIP_SRC ? "SRC" : "DST",
@@ -352,14 +375,14 @@ nf_nat_ipv4_fn(void *priv, struct sk_buff *skb,
 			goto oif_changed;*/
 	}
 
-  return NF_ACCEPT;
-	//return nf_nat_packet(ct, ctinfo, state->hook, skb);
+  //return NF_ACCEPT;
+	return nf_nat_packet(ct, ctinfo, state->hook, skb);
 
 oif_changed:
 	nf_ct_kill_acct(ct, ctinfo, skb);
 	return NF_DROP;
 }
-EXPORT_SYMBOL(nf_nat_ipv4_fn);
+EXPORT_SYMBOL(nf_nat_ipv4_fn1);
 
 unsigned int
 nf_nat_ipv4_in(void *priv, struct sk_buff *skb,
@@ -372,7 +395,7 @@ nf_nat_ipv4_in(void *priv, struct sk_buff *skb,
 	unsigned int ret;
 	__be32 daddr = ip_hdr(skb)->daddr;
 
-	ret = nf_nat_ipv4_fn(priv, skb, state, do_chain);
+	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain);
 	if (ret != NF_DROP && ret != NF_STOLEN &&
 	    daddr != ip_hdr(skb)->daddr)
 		skb_dst_drop(skb);
@@ -401,7 +424,7 @@ nf_nat_ipv4_out(void *priv, struct sk_buff *skb,
 	    ip_hdrlen(skb) < sizeof(struct iphdr))
 		return NF_ACCEPT;
 
-	ret = nf_nat_ipv4_fn(priv, skb, state, do_chain);
+	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain);
 #ifdef CONFIG_XFRM
 	if (ret != NF_DROP && ret != NF_STOLEN &&
 	    !(IPCB(skb)->flags & IPSKB_XFRM_TRANSFORMED) &&
@@ -441,7 +464,7 @@ nf_nat_ipv4_local_fn(void *priv, struct sk_buff *skb,
 	    ip_hdrlen(skb) < sizeof(struct iphdr))
 		return NF_ACCEPT;
 
-	ret = nf_nat_ipv4_fn(priv, skb, state, do_chain);
+	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain);
 	if (ret != NF_DROP && ret != NF_STOLEN &&
 	    (ct = nf_ct_get(skb, &ctinfo)) != NULL) {
 		enum ip_conntrack_dir dir = CTINFO2DIR(ctinfo);

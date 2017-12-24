@@ -87,7 +87,7 @@ static unsigned int xt_dnat_target_v0(struct sk_buff *skb, const struct xt_actio
   return nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
 }
 
-static int xt_nat_checkentry_v0(const struct xt_tgchk_param *par)
+int xt_nat_checkentry_v0(const struct xt_tgchk_param *par)
 {
   const struct nf_nat_ipv4_multi_range_compat *mr = par->targinfo;
 
@@ -99,18 +99,125 @@ static int xt_nat_checkentry_v0(const struct xt_tgchk_param *par)
   return 0;
 }
 
-static unsigned int nat_confirm(struct sk_buff *skb, const struct xt_action_param *par)
+unsigned int nat_confirm(struct sk_buff *skb, const struct xt_action_param *par)
 {
   printk(KERN_INFO "Passing through NAT NF\n");
   return 0;
 }
 
-int set_filter_rule(struct net *net)
+// int set_filter_rule(struct net *net)
+// {
+//   unsigned int hook = NF_INET_PRE_ROUTING;
+//   struct xt_table *table;
+//   struct xt_table_info *private;
+//   void *table_base;
+//   struct ipt_entry *e, *last_e;
+//   struct ipt_entry_match * match_proto;
+//   struct ipt_entry_target * target;
+//   struct xt_standard_target * st_target;
+//   struct ipt_udp * udpinfo;
+//   struct ipt_tcp * tcpinfo;
+//   unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target, size_ipt_udp, size_ipt_tcp, total_length, total_length1;
+// 
+//   size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
+//   size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
+//   size_ipt_entry_target = IPT_ALIGN(sizeof(struct ipt_entry_target));
+//   size_ipt_udp = IPT_ALIGN(sizeof(struct ipt_udp));
+//   size_ipt_tcp = IPT_ALIGN(sizeof(struct ipt_tcp));
+// 
+//   total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp + size_ipt_entry_target;
+//   printk(KERN_INFO "total_length is %d\n", total_length);
+// 
+//   table = net->ipv4.iptable_filter;
+//   private = table->private;
+//   table_base = private->entries;
+//  
+//   printk(KERN_INFO "hook number is %d\n", hook);
+//   printk(KERN_INFO "address of net->ipv4.iptable_filter is 0x%08lx and size is %d\n", (ulong)table, sizeof(table));
+//   printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
+//   printk(KERN_INFO "address of table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
+// 
+//   e = kmalloc(total_length, GFP_ATOMIC);
+//   if (e == NULL) {
+// 	  printk(KERN_ERR "Failed to allocate memory");
+//     return -1;
+//   }
+//   printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
+// 
+//   e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp;
+//   e->next_offset = total_length;
+// 
+//   /* Set matching rules: "-s 156.145.1.3. -d 168.200.1.9" */
+//   e->ip.src.s_addr = in_aton("0.0.0.0");
+//   e->ip.smsk.s_addr= in_aton("0.0.0.0");
+//   e->ip.dst.s_addr = in_aton("0.0.0.0");
+//   e->ip.dmsk.s_addr= in_aton("0.0.0.0"); 
+//   e->ip.proto = IPPROTO_TCP;
+//   e->ip.invflags = 0;
+//   e->nfcache = 0;
+//   strcpy(e->ip.iniface, "ens3");
+//   strcpy(e->ip.outiface, "ens3");
+// 
+//   /* Set TCP protocol match rules */
+//   match_proto = (struct ipt_entry_match *)e->elems;
+//   match_proto->u.match_size = size_ipt_entry_match + size_ipt_tcp;
+//   strcpy(match_proto->u.user.name, "tcp");
+//   match_proto->u.kernel.match->match = tcp_mt;
+//   printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, tcp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); 
+// 
+//   /* TCP match extenstion */
+//   tcpinfo = (struct ipt_tcp *)match_proto->data;
+//   tcpinfo->spts[0] = ntohs(0);
+//   tcpinfo->spts[1] = ntohs(0xE7); 
+//   tcpinfo->dpts[0] = ntohs(0);
+//   tcpinfo->dpts[1] = ntohs(0x1c8);
+//   tcpinfo->flg_mask = 0;
+//   tcpinfo->flg_cmp = 0;
+//   tcpinfo->invflags =0;
+// 
+//   /* ipt_entry_target struct */
+//   target = (struct ipt_entry_target *)((void *)e + size_ipt_entry + size_ipt_entry_match + size_ipt_tcp);
+//   printk(KERN_INFO "address of e->elems is 0x%08lx\n", (ulong)e->elems);
+//   printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
+//   target->u.target_size = size_ipt_entry_target;
+//   strcpy(target->u.user.name, "NFC");
+// 
+//   memcpy(table_base, e, total_length);
+// 
+//   /* Set the last rule to stop the rule checking iteration */
+//   total_length1 = size_ipt_entry + IPT_ALIGN(sizeof(struct xt_standard_target));
+//   last_e = kmalloc(total_length1, GFP_KERNEL);
+// 
+//   last_e->target_offset = size_ipt_entry;
+//   last_e->next_offset = total_length1;
+// 
+//   /* Set last matching rule (ACCEPT) */
+//   last_e->ip.src.s_addr = in_aton("0.0.0.0");
+//   last_e->ip.smsk.s_addr= in_aton("0.0.0.0"); 
+//   last_e->ip.dst.s_addr = in_aton("0.0.0.0");
+//   last_e->ip.dmsk.s_addr= in_aton("0.0.0.0"); 
+//   last_e->ip.proto = IPPROTO_IP;
+//   last_e->ip.invflags = 0;
+//   last_e->nfcache = 0;
+//   strcpy(last_e->ip.iniface, "ens3");
+//   strcpy(last_e->ip.outiface, "ens3");
+// 
+//   st_target = (struct xt_standard_target *)((void *)last_e + size_ipt_entry);
+//   st_target->verdict = -2;
+//   st_target->target.u.target_size = size_ipt_entry_target;
+//   strcpy(st_target->target.u.user.name, "ACCEPT"); 
+// 
+//   memcpy(table_base + total_length, last_e, total_length1);
+// 
+//   return 0;
+// }
+
+int set_filter_rule2(struct net *net)
 {
   unsigned int hook = NF_INET_PRE_ROUTING;
   struct xt_table *table;
   struct xt_table_info *private;
-  const void *table_base;
+  void *table_base;
   struct ipt_entry *e, *last_e;
   struct ipt_entry_match * match_proto;
   struct ipt_entry_target * target;
@@ -125,8 +232,8 @@ int set_filter_rule(struct net *net)
   size_ipt_udp = IPT_ALIGN(sizeof(struct ipt_udp));
   size_ipt_tcp = IPT_ALIGN(sizeof(struct ipt_tcp));
 
-  //total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
   total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp + size_ipt_entry_target;
+  printk(KERN_INFO "total_length is %d\n", total_length);
 
   table = net->ipv4.iptable_filter;
   private = table->private;
@@ -137,15 +244,13 @@ int set_filter_rule(struct net *net)
   printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
   printk(KERN_INFO "address of table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
 
-  //e = (struct ipt_entry *)(table_base + private->hook_entry[hook]);  
-  e = kmalloc(total_length, GFP_KERNEL);
+  e = kmalloc(total_length, GFP_ATOMIC);
   if (e == NULL) {
 	  printk(KERN_ERR "Failed to allocate memory");
     return -1;
   }
   printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
 
-  //e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_udp;
   e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp;
   e->next_offset = total_length;
 
@@ -164,26 +269,12 @@ int set_filter_rule(struct net *net)
   strcpy(e->ip.iniface, "ens3");
   strcpy(e->ip.outiface, "ens3");
 
-  /* Set UDP protocol match rules 
-  match_proto = (struct ipt_entry_match *)e->elems;
-  match_proto->u.match_size = size_ipt_entry_match + size_ipt_udp;
-  strcpy(match_proto->u.user.name, "udp");
-  match_proto->u.kernel.match->match = udp_mt;
-  printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, udp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); */
-
   /* Set TCP protocol match rules */
   match_proto = (struct ipt_entry_match *)e->elems;
   match_proto->u.match_size = size_ipt_entry_match + size_ipt_tcp;
   strcpy(match_proto->u.user.name, "tcp");
   match_proto->u.kernel.match->match = tcp_mt;
   printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, tcp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); 
-
-	  /* UDP match extenstion 
-  udpinfo = (struct ipt_udp *)match_proto->data;
-  udpinfo->spts[0] = ntohs(0);
-  udpinfo->spts[1] = ntohs(0xE7); 
-  udpinfo->dpts[0] = ntohs(0);
-  udpinfo->dpts[1] = ntohs(0x1c8); */
 
   /* TCP match extenstion */
   tcpinfo = (struct ipt_tcp *)match_proto->data;
@@ -196,7 +287,6 @@ int set_filter_rule(struct net *net)
   tcpinfo->invflags =0;
 
   /* ipt_entry_target struct */
-  //target = (struct ipt_entry_target *)(e->elems + size_ipt_entry_match + size_ipt_udp);
   target = (struct ipt_entry_target *)((void *)e + size_ipt_entry + size_ipt_entry_match + size_ipt_tcp);
   printk(KERN_INFO "address of e->elems is 0x%08lx\n", (ulong)e->elems);
   printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
@@ -206,205 +296,14 @@ int set_filter_rule(struct net *net)
   memcpy(table_base, e, total_length);
 
   /* Set the last rule to stop the rule checking iteration */
-  //total_length1 = size_ipt_entry + size_ipt_entry_target;
   total_length1 = size_ipt_entry + IPT_ALIGN(sizeof(struct xt_standard_target));
-  last_e = kmalloc(total_length1, GFP_KERNEL);
 
-  last_e->target_offset = size_ipt_entry;
-  last_e->next_offset = total_length1;
-
-  /* Set last matching rule (ACCEPT) */
-  last_e->ip.src.s_addr = in_aton("0.0.0.0");
-  last_e->ip.smsk.s_addr= in_aton("0.0.0.0"); 
-  last_e->ip.dst.s_addr = in_aton("0.0.0.0");
-  last_e->ip.dmsk.s_addr= in_aton("0.0.0.0"); 
-  last_e->ip.proto = IPPROTO_IP;
-  last_e->ip.invflags = 0;
-  last_e->nfcache = 0;
-  strcpy(last_e->ip.iniface, "ens3");
-  strcpy(last_e->ip.outiface, "ens3");
-
-  //target = (struct ipt_entry_target *)(last_e->elems);
-  //st_target = (struct xt_standard_target *)((void *)last_e + last_e->target_offset);
-  //st_target = (struct xt_standard_target *)(last_e + last_e->target_offset);
-  st_target = (struct xt_standard_target *)((void *)last_e + size_ipt_entry);
-  st_target->verdict = -2;
-  //st_target->verdict = -3;
-  //st_target->verdict = -1;
-  st_target->target.u.target_size = size_ipt_entry_target;
-  strcpy(st_target->target.u.user.name, "ACCEPT"); 
-
-  memcpy(table_base + total_length, last_e, total_length1);
-  printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
-  printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
-
-  return 0;
-}
-
-int set_nat_rule(struct net *net)
-{
-  unsigned int hook = NF_INET_PRE_ROUTING;
-  struct xt_table *table;
-  struct xt_table_info *private;
-  const void *table_base;
-  struct ipt_entry *e, *last_e;
-  struct ipt_entry_match * match_proto;
-  struct ipt_entry_target *target;
-  struct xt_standard_target *st_target;
-  struct ipt_udp * udpinfo;
-  struct ipt_tcp * tcpinfo;
-  unsigned int size_ipt_entry, size_ipt_entry_match, size_ipt_entry_target, size_ipt_udp, size_ipt_tcp, total_length, total_length1;
-  struct xt_action_param *par;
-  //struct nf_nat_ipv4_multi_range_compat mr;
-  struct nf_nat_ipv4_multi_range_compat *mr;
-  //struct xt_target nat_target;
-  struct xt_target *nat_target;
-  struct ipt_replace *repl;
-  struct xt_table *test_table;
-  struct ipt_entry_target *t;
-  
-  register_nf_target(nf_nat_func, -200, "NAT");
-
-  /* register nat table 
-  printk(KERN_INFO "Going to register table in %u\n", net->ns.inum);
-  repl = ipt_alloc_initial_table(&nf_nat_ipv4_table);
-  if (repl == NULL) {
-    printk(KERN_INFO "Could not allocate table\n");
-    return -ENOMEM;
-  }
-  //net->ipv4.nat_table = ipt_register_table(net, &nf_nat_ipv4_table, repl);
-  //the nat table is already allocated in iptable_nat.ko!!!
-  if(!(net->ipv4.nat_table)) {
-    printk(KERN_INFO "no member nat_table\n");
-  }
-  printk(KERN_INFO "address of net->ipv4.nat_table is 0x%08lx\n", net->ipv4.nat_table);
-  //test_table = ipt_register_table(net, &nf_nat_ipv4_table, repl);
-  printk(KERN_INFO "address of nat_table is 0x%08lx and size is %d\n", test_table, sizeof(test_table));
-  kfree(repl);
-  */
-
-  table = net->ipv4.nat_table;
-  private = table->private;
-  table_base = private->entries;
-
-  printk(KERN_INFO "Read the nat table\n");
-
-  printk(KERN_INFO "address of nat table_base is 0x%08lx\n", (ulong)table_base);
-  printk(KERN_INFO "address of nat table_base + private->hook_entry[hook] is 0x%08lx\n", (ulong)(table_base + private->hook_entry[hook]));
-
-  mr = kmalloc(sizeof(struct nf_nat_ipv4_multi_range_compat), GFP_KERNEL);
-  /* target rule for nat (DST) */
-  mr->range[0].min_ip = in_aton("10.10.9.4");
-  mr->range[0].max_ip = in_aton("10.10.9.4");
-  mr->range[0].min.all = ntohs(0x1c8);
-  mr->range[0].max.all = ntohs(0x1c8);
-
-  /* target for nat */
-  nat_target = kmalloc(sizeof(struct xt_target), GFP_KERNEL);
-  memset(nat_target, 0, sizeof(struct xt_target));
-//  strncpy(nat_target->name, "DNAT", 4);
-//  nat_target->name = "DNAT";
-  nat_target->revision = 0;
-  //nat_target->target = xt_dnat_target_v0;
-  nat_target->target = nat_confirm;
-  nat_target->checkentry = xt_nat_checkentry_v0;
-  nat_target->targetsize = sizeof(struct nf_nat_ipv4_multi_range_compat);
-  nat_target->family = NFPROTO_IPV4;
- // nat_target->table = "nat";
-//  strncpy(nat_target->table, "nat", 3);
-  //nat_target.hooks = (1 << NF_INET_PRE_ROUTING) | (1 << NF_INET_LOCAL_OUT);
-  nat_target->hooks = (1 << NF_INET_PRE_ROUTING);
-  nat_target->me = THIS_MODULE;
-
-  size_ipt_entry = IPT_ALIGN(sizeof(struct ipt_entry));
-  size_ipt_entry_match = IPT_ALIGN(sizeof(struct ipt_entry_match));
-  size_ipt_entry_target = IPT_ALIGN(sizeof(struct ipt_entry_target));
-  size_ipt_udp = IPT_ALIGN(sizeof(struct ipt_udp));
-  size_ipt_tcp = IPT_ALIGN(sizeof(struct ipt_tcp));
-
-  //total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
-  total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp + size_ipt_entry_target;
-  
-  e = kmalloc(total_length, GFP_KERNEL);
-  if (e == NULL) {
+  last_e = kmalloc(total_length1, GFP_ATOMIC);
+  if (last_e == NULL) {
 	  printk(KERN_ERR "Failed to allocate memory");
     return -1;
   }
 
-  //e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_udp;
-  e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp;
-  e->next_offset = total_length;
-
-  /* Set matching rules: "-s 156.145.1.3. -d 168.200.1.9" */
-  e->ip.src.s_addr = in_aton("0.0.0.0");
-  e->ip.smsk.s_addr= in_aton("0.0.0.0");
-  //e->ip.dst.s_addr = in_aton("192.168.122.168");
-  e->ip.dst.s_addr = in_aton("10.10.9.4");
-  //e->ip.dmsk.s_addr= in_aton("192.168.122.168"); 
-  e->ip.dmsk.s_addr= in_aton("10.10.9.4"); 
-  e->ip.proto = IPPROTO_TCP;
-  e->ip.invflags = 0;
-  e->nfcache = 0;
-  strcpy(e->ip.iniface, "ens3");
-  strcpy(e->ip.outiface, "ens3");
-
-  /* Set UDP protocol match rules 
-  match_proto = (struct ipt_entry_match *)e->elems;
-  match_proto->u.match_size = size_ipt_entry_match + size_ipt_udp;
-  strcpy(match_proto->u.user.name, "udp");
-  match_proto->u.kernel.match->match = udp_mt;
-  printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, udp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); */
-
-  /* Set TCP protocol match rules */
-  match_proto = (struct ipt_entry_match *)e->elems;
-  match_proto->u.match_size = size_ipt_entry_match + size_ipt_tcp;
-  strcpy(match_proto->u.user.name, "tcp");
-  match_proto->u.kernel.match->match = tcp_mt;
-  printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, tcp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); 
-
-	  /* UDP match extenstion 
-  udpinfo = (struct ipt_udp *)match_proto->data;
-  udpinfo->spts[0] = ntohs(0);
-  udpinfo->spts[1] = ntohs(0xE7); 
-  udpinfo->dpts[0] = ntohs(0);
-  udpinfo->dpts[1] = ntohs(0x1c8); */
-
-  /* TCP match extenstion */
-  tcpinfo = (struct ipt_tcp *)match_proto->data;
-  tcpinfo->spts[0] = ntohs(0);
-  tcpinfo->spts[1] = ntohs(0xE7); 
-  tcpinfo->dpts[0] = ntohs(0x1c8);
-  tcpinfo->dpts[1] = ntohs(0x1c8);
-  tcpinfo->flg_mask = 0;
-  tcpinfo->flg_cmp = 0;
-  tcpinfo->invflags =0;
-
-  /* ipt_entry_target struct */
-  //target = (struct ipt_entry_target *)(e->elems + size_ipt_entry_match + size_ipt_udp);
-  target = (struct ipt_entry_target *)((void *)e + size_ipt_entry + size_ipt_entry_match + size_ipt_tcp);
-  printk(KERN_INFO "address of e->elems is 0x%08lx\n", (ulong)e->elems);
-  printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
-  target->u.target_size = size_ipt_entry_target;
-  memcpy(target->data, mr, sizeof(struct nf_nat_ipv4_multi_range_compat));
-  target->u.kernel.target = nat_target;
-  //strcpy(target->u.user.name, "NFC");
-
-  memcpy(table_base, e, total_length);
-
-  /* Test */
-  e = get_entry(table_base, private->hook_entry[hook]);
-  t = ipt_get_target(e);
-  if(t) {
-    printk(KERN_INFO "Address of First target is 0x%08lx\n", t);
-  } else {
-    printk(KERN_INFO "t is nulll\n");
-  }
-
-  /* Set the last rule to stop the rule checking iteration */
-  //total_length1 = size_ipt_entry + size_ipt_entry_target;
-  total_length1 = size_ipt_entry + IPT_ALIGN(sizeof(struct xt_standard_target));
-  last_e = kmalloc(total_length1, GFP_KERNEL);
-
   last_e->target_offset = size_ipt_entry;
   last_e->next_offset = total_length1;
 
@@ -419,91 +318,14 @@ int set_nat_rule(struct net *net)
   strcpy(last_e->ip.iniface, "ens3");
   strcpy(last_e->ip.outiface, "ens3");
 
-  //st_target = (struct xt_standard_target *)((void *)last_e + last_e->target_offset);
-  //st_target = (struct xt_standard_target *)(last_e + last_e->target_offset);
   st_target = (struct xt_standard_target *)((void *)last_e + size_ipt_entry);
   st_target->verdict = -2;
-  //st_target->verdict = -3;
-  //st_target->verdict = -1;
   st_target->target.u.target_size = size_ipt_entry_target;
   strcpy(st_target->target.u.user.name, "ACCEPT"); 
 
   memcpy(table_base + total_length, last_e, total_length1);
-  //printk(KERN_INFO "address of ipt_entry last_e is 0x%08lx\n", (ulong)(table_base + total_length));
-  //printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)(table_base + total_length + last_e->target_offset));
-  
-  e = ipt_next_entry(e);
-  if(e) {
-    printk(KERN_INFO "Address of next entry is 0x%08lx (nat)\n", e);
-  }
 
   return 0;
-}
-
-unsigned int ipt_do_table_test(struct net *net)
-{
-  struct xt_action_param acpar;
-  const void *table_base;
-  struct xt_table *table;
-  unsigned int verdict = NF_DROP;
-  const struct xt_table_info *private;
-  unsigned int hook = NF_INET_PRE_ROUTING;
-  struct ipt_entry *e;
-  struct xt_entry_target *t;
-  struct sk_buff *skb;
-
-  table = net->ipv4.nat_table;
-  private = table->private;
-  table_base = private->entries;
-
-  e = get_entry(table_base, private->hook_entry[hook]);
-  t = ipt_get_target(e);
-
-  acpar.hotdrop = false;
-
-  if(!t->u.kernel.target) {
-    printk(KERN_INFO "NF function is set Likely\n");
-    return 0;
-  } 
-  if (!t->data) {
-    printk(KERN_INFO "target data is not set Likely\n");
-    return 0;
-  }
-  if (!t->u.kernel.target->target) {
-    printk(KERN_INFO "target function is not set Likely\n");
-    return 0;
-  }
-
-  do {
-    if(!t->u.kernel.target) {
-      printk(KERN_INFO "NF function\n");
-    } else if (!t->u.kernel.target->target) {
-      printk(KERN_INFO "Standard target\n");
-    }
-
-    if(!t->u.kernel.target) {
-      printk(KERN_INFO "NF function verdict\n");
-    } else {
-      acpar.target = t->u.kernel.target;
-      acpar.targinfo = t->data;
-
-      verdict = t->u.kernel.target->target(skb, &acpar);
-      if (verdict == XT_CONTINUE) {
-        printk(KERN_INFO "continue\n");
-        e = ipt_next_entry(e);
-      } else {
-        printk(KERN_INFO "Nat is finished\n");
-        break;
-      }
-    }
-  } while (!acpar.hotdrop);
-  
-  if (acpar.hotdrop) {
-    return NF_DROP;
-  } else {
-    return verdict;
-  }
-  return NF_ACCEPT;
 }
 
 static void init_rule(struct sk_buff *skb)
@@ -521,14 +343,12 @@ static void init_rule(struct sk_buff *skb)
   net = current->nsproxy->net_ns;
   printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
 
-  if ((err = set_nat_rule(net)) < 0) {
-    printk(KERN_ERR "Could not register nat rule\n");
-  }
+  register_nf_target(nf_nat_func, -200, "NAT");
 
-  if ((err = set_filter_rule(net)) < 0) {
+  if ((err = set_filter_rule2(net)) < 0) {
     printk(KERN_ERR "Could not register filter rule\n");
   } 
- 
+
   /* 
   verdict = ipt_do_table_test(net);
   printk(KERN_INFO "Verdict is %u in init_rule\n", verdict); */

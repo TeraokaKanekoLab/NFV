@@ -388,10 +388,13 @@ nf_nat_setup_info(struct nf_conn *ct,
 	struct nf_conntrack_tuple curr_tuple, new_tuple;
 	struct nf_conn_nat *nat;
 
+  printk(KERN_INFO "nf_nat_setup_info is called\n");
 	/* nat helper or nfctnetlink also setup binding */
 	nat = nf_ct_nat_ext_add(ct);
-	if (nat == NULL)
+	if (nat == NULL) {
+    printk(KERN_INFO "nf_ct_nat_ext_add returns NULL\n");
 		return NF_ACCEPT;
+  }
 
 	NF_CT_ASSERT(maniptype == NF_NAT_MANIP_SRC ||
 		     maniptype == NF_NAT_MANIP_DST);
@@ -408,6 +411,7 @@ nf_nat_setup_info(struct nf_conn *ct,
 	get_unique_tuple(&new_tuple, &curr_tuple, range, ct, maniptype);
 
 	if (!nf_ct_tuple_equal(&new_tuple, &curr_tuple)) {
+    printk(KERN_INFO "!nf_ct_tuple_equal\n");
 		struct nf_conntrack_tuple reply;
 
 		/* Alter conntrack table so will recognize replies. */
@@ -415,16 +419,21 @@ nf_nat_setup_info(struct nf_conn *ct,
 		nf_conntrack_alter_reply(ct, &reply);
 
 		/* Non-atomic: we own this at the moment. */
-		if (maniptype == NF_NAT_MANIP_SRC)
+		if (maniptype == NF_NAT_MANIP_SRC) {
+      printk(KERN_INFO "MANIP_SRC\n");
 			ct->status |= IPS_SRC_NAT;
-		else
+    }
+		else {
+      printk(KERN_INFO "MANIP_DST\n");
 			ct->status |= IPS_DST_NAT;
+    }
 
 		if (nfct_help(ct))
 			nfct_seqadj_ext_add(ct);
 	}
 
 	if (maniptype == NF_NAT_MANIP_SRC) {
+    printk(KERN_INFO "NF_NAT_MANIP_SRC\n");
 		unsigned int srchash;
 
 		srchash = hash_by_src(net,
@@ -444,6 +453,7 @@ nf_nat_setup_info(struct nf_conn *ct,
 	else
 		ct->status |= IPS_SRC_NAT_DONE;
 
+  printk(KERN_INFO "nf_nat_setup_info is over\n");
 	return NF_ACCEPT;
 }
 EXPORT_SYMBOL(nf_nat_setup_info);
@@ -486,6 +496,7 @@ unsigned int nf_nat_packet(struct nf_conn *ct,
 	unsigned long statusbit;
 	enum nf_nat_manip_type mtype = HOOK2MANIP(hooknum);
 
+  printk(KERN_INFO "nf_nat_packet start\n");
 	if (mtype == NF_NAT_MANIP_SRC)
 		statusbit = IPS_SRC_NAT;
 	else
@@ -498,6 +509,7 @@ unsigned int nf_nat_packet(struct nf_conn *ct,
 	/* Non-atomic: these bits don't change. */
 	if (ct->status & statusbit) {
 		struct nf_conntrack_tuple target;
+    printk(KERN_INFO "ct->status & statusbit\n");
 
 		/* We are aiming to look like inverse of other direction. */
 		nf_ct_invert_tuplepr(&target, &ct->tuplehash[!dir].tuple);
@@ -505,8 +517,10 @@ unsigned int nf_nat_packet(struct nf_conn *ct,
 		l3proto = __nf_nat_l3proto_find(target.src.l3num);
 		l4proto = __nf_nat_l4proto_find(target.src.l3num,
 						target.dst.protonum);
-		if (!l3proto->manip_pkt(skb, 0, l4proto, &target, mtype))
+		if (!l3proto->manip_pkt(skb, 0, l4proto, &target, mtype)) {
+      printk(KERN_INFO "NF_DROP occurs\n");
 			return NF_DROP;
+    }
 	}
 	return NF_ACCEPT;
 }

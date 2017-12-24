@@ -19,6 +19,7 @@
 #include <net/netfilter/nf_nat_core.h>
 #include <net/netfilter/nf_nat_l3proto.h>
 
+extern unsigned int nf_nat_ipv4_fn1(void *, struct sk_buff *, const struct nf_hook_state *, struct nf_nat_ipv4_multi_range_compat *);
 static const struct xt_table nf_nat_ipv4_table = {
 	.name		= "nat",
 	.valid_hooks	= (1 << NF_INET_PRE_ROUTING) |
@@ -41,7 +42,7 @@ static unsigned int iptable_nat_ipv4_fn(void *priv,
 					struct sk_buff *skb,
 					const struct nf_hook_state *state)
 {
-	return nf_nat_ipv4_fn(priv, skb, state, iptable_nat_do_chain);
+	return nf_nat_ipv4_fn1(priv, skb, state, iptable_nat_do_chain);
 }
 
 static unsigned int iptable_nat_ipv4_in(void *priv,
