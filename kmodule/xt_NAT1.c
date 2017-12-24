@@ -56,6 +56,7 @@ static int __init nf_nat_init(void)
   mr->range[0].max_ip = in_aton("10.10.9.4");
   mr->range[0].min.all = ntohs(0xc3c8);
   mr->range[0].max.all = ntohs(0xc3c8);
+  mr->range[0].flags = NF_NAT_RANGE_MAP_IPS;
 
   return 0;
 }

@@ -26,24 +26,98 @@ static const struct xt_table nf_nat_ipv4_table = {
 
 extern unsigned int iptable_nat_ipv4_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 
-unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state)
+static struct ipt_entry *ipt_next_entry(const struct ipt_entry *entry)
 {
-  int ret = 1;
-  printk(KERN_INFO "Starting NAT...\n");
-  //ret = iptable_nat_ipv4_in(NULL, skb, state);
-  if (!state) {
-    printk(KERN_INFO " state is not found...\n");
-    return ret;
+  return (void *)entry + entry->next_offset;
+}
+
+static struct ipt_entry *get_entry(const void *base, unsigned int offset)
+{
+    return (struct ipt_entry *)(base + offset);
+}
+
+unsigned int ipt_do_table_test2(struct sk_buff *skb, const struct nf_hook_state *state, struct xt_table *table)
+{
+  struct xt_action_param acpar;
+  const void *table_base;
+  unsigned int verdict = NF_DROP;
+  const struct xt_table_info *private;
+  unsigned int hook = NF_INET_PRE_ROUTING;
+  struct ipt_entry *e;
+  struct xt_entry_target *t;
+
+  private = table->private;
+  table_base = private->entries;
+
+  e = get_entry(table_base, private->hook_entry[hook]);
+  t = ipt_get_target(e);
+
+  acpar.hotdrop = false;
+
+  if (!t->u.kernel.target) {
+    printk(KERN_INFO "NF function is set Likely\n");
+    return 0;
+  } 
+  if (!t->data) {
+    printk(KERN_INFO "target data is not set Likely\n");
+    return 0;
+  }
+  if (!t->u.kernel.target->target) {
+    printk(KERN_INFO "target function is not set Likely\n");
+    return 0;
   }
 
-  if (!state->net->ipv4.nat_table) {
-    printk(KERN_INFO " NAT table is not found...\n");
-    return ret;
+  do {
+    if (!t->u.kernel.target) {
+      printk(KERN_INFO "NF function\n");
+    } else if (!t->u.kernel.target->target) {
+      printk(KERN_INFO "Standard target\n");
+    }
+
+    if (!t->u.kernel.target) {
+      printk(KERN_INFO "NF function verdict\n");
+    } else {
+      acpar.target = t->u.kernel.target;
+      acpar.targinfo = t->data;
+
+      verdict = t->u.kernel.target->target(skb, &acpar);
+      if (verdict == XT_CONTINUE) {
+        printk(KERN_INFO "continue\n");
+        e = ipt_next_entry(e);
+      } else {
+        printk(KERN_INFO "Nat is finished\n");
+        break;
+      }
+    }
+  } while (!acpar.hotdrop);
+
+  if (acpar.hotdrop) {
+    return NF_DROP;
+  } else {
+    return verdict;
   }
-  ret = ipt_do_table(skb, state, state->net->ipv4.nat_table);
-  return ret;
+  return NF_ACCEPT;
 }
-EXPORT_SYMBOL(nf_nat_func);
+
+//unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state)
+//{
+//  int ret = 1;
+//  printk(KERN_INFO "Starting NAT...\n");
+//  //ret = iptable_nat_ipv4_in(NULL, skb, state);
+//  if (!state) {
+//    printk(KERN_INFO " state is not found...\n");
+//    return ret;
+//  }
+//
+//  if (!state->net->ipv4.nat_table) {
+//    printk(KERN_INFO " NAT table is not found...\n");
+//    return ret;
+//  }
+////  ret = ipt_do_table(skb, state, state->net->ipv4.nat_table);
+////  ret = ipt_do_table_test2(skb, state, state->net->ipv4.nat_table);
+//  return ret;
+//}
+//EXPORT_SYMBOL(nf_nat_func);
 
 static int __init nf_nat_init(void)
 {

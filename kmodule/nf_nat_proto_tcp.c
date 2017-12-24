@@ -58,10 +58,12 @@ tcp_manip_pkt(struct sk_buff *skb,
 
 	if (maniptype == NF_NAT_MANIP_SRC) {
 		/* Get rid of src port */
+    printk(KERN_INFO "Change TCP src port\n");
 		newport = tuple->src.u.tcp.port;
 		portptr = &hdr->source;
 	} else {
 		/* Get rid of dst port */
+    printk(KERN_INFO "Change TCP dst port\n");
 		newport = tuple->dst.u.tcp.port;
 		portptr = &hdr->dest;
 	}

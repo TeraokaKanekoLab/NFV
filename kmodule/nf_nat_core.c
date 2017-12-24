@@ -235,8 +235,10 @@ find_best_ips_proto(const struct nf_conntrack_zone *zone,
 	bool full_range;
 
 	/* No IP mapping?  Do nothing. */
-	if (!(range->flags & NF_NAT_RANGE_MAP_IPS))
+	if (!(range->flags & NF_NAT_RANGE_MAP_IPS)) {
+    printk(KERN_INFO "NF_NAT_RANGE_MAP_IPS is not set\n");
 		return;
+  }
 
 	if (maniptype == NF_NAT_MANIP_SRC)
 		var_ipp = &tuple->src.u3;
@@ -245,6 +247,7 @@ find_best_ips_proto(const struct nf_conntrack_zone *zone,
 
 	/* Fast path: only one choice. */
 	if (nf_inet_addr_cmp(&range->min_addr, &range->max_addr)) {
+    printk(KERN_INFO "only one choice\n");
 		*var_ipp = range->min_addr;
 		return;
 	}
@@ -287,6 +290,7 @@ find_best_ips_proto(const struct nf_conntrack_zone *zone,
 		if (!(range->flags & NF_NAT_RANGE_PERSISTENT))
 			j ^= (__force u32)tuple->dst.u3.all[i];
 	}
+  printk(KERN_INFO "find_ips_best_proto is over\n");
 }
 
 /* Manipulate the tuple into the range given. For NF_INET_POST_ROUTING,
@@ -322,21 +326,24 @@ get_unique_tuple(struct nf_conntrack_tuple *tuple,
 	 * So far, we don't do local source mappings, so multiple
 	 * manips not an issue.
 	 */
-	if (maniptype == NF_NAT_MANIP_SRC &&
-	    !(range->flags & NF_NAT_RANGE_PROTO_RANDOM_ALL)) {
-		/* try the original tuple first */
-		if (in_range(l3proto, l4proto, orig_tuple, range)) {
-			if (!nf_nat_used_tuple(orig_tuple, ct)) {
-				*tuple = *orig_tuple;
-				goto out;
-			}
-		} else if (find_appropriate_src(net, zone, l3proto, l4proto,
-						orig_tuple, tuple, range)) {
-			pr_debug("get_unique_tuple: Found current src map\n");
-			if (!nf_nat_used_tuple(tuple, ct))
-				goto out;
-		}
-	}
+  if (maniptype == NF_NAT_MANIP_SRC &&
+      !(range->flags & NF_NAT_RANGE_PROTO_RANDOM_ALL)) {
+    /* try the original tuple first */
+    if (in_range(l3proto, l4proto, orig_tuple, range)) {
+      if (!nf_nat_used_tuple(orig_tuple, ct)) {
+        *tuple = *orig_tuple;
+        printk(KERN_INFO "1st if in get_unique_tuple\n");
+        goto out;
+      }
+    } else if (find_appropriate_src(net, zone, l3proto, l4proto,
+          orig_tuple, tuple, range)) {
+      pr_debug("get_unique_tuple: Found current src map\n");
+      if (!nf_nat_used_tuple(tuple, ct)) {
+        printk(KERN_INFO "2nd if in get_unique_tuple\n");
+        goto out;
+      }
+    }
+  }
 
 	/* 2) Select the least-used IP/proto combination in the given range */
 	*tuple = *orig_tuple;
@@ -349,17 +356,21 @@ get_unique_tuple(struct nf_conntrack_tuple *tuple,
 	/* Only bother mapping if it's not already in range and unique */
 	if (!(range->flags & NF_NAT_RANGE_PROTO_RANDOM_ALL)) {
 		if (range->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
-			if (l4proto->in_range(tuple, maniptype,
-					      &range->min_proto,
-					      &range->max_proto) &&
-			    (range->min_proto.all == range->max_proto.all ||
-			     !nf_nat_used_tuple(tuple, ct)))
-				goto out;
-		} else if (!nf_nat_used_tuple(tuple, ct)) {
-			goto out;
+      if (l4proto->in_range(tuple, maniptype,
+            &range->min_proto,
+            &range->max_proto) &&
+          (range->min_proto.all == range->max_proto.all ||
+           !nf_nat_used_tuple(tuple, ct))) {
+        printk(KERN_INFO "3rd if in get_unique_tuple\n");
+        goto out;
+      }
+    } else if (!nf_nat_used_tuple(tuple, ct)) {
+      printk(KERN_INFO "4th if in get_unique_tuple\n");
+      goto out;
 		}
 	}
 
+  printk(KERN_INFO "Before l4proto->unique_tuple\n");
 	/* Last change: get protocol to try to obtain unique tuple. */
 	l4proto->unique_tuple(l3proto, tuple, range, maniptype, ct);
 out:

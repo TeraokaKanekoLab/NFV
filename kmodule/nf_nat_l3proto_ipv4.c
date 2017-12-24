@@ -113,9 +113,11 @@ static bool nf_nat_ipv4_manip_pkt(struct sk_buff *skb,
 	iph = (void *)skb->data + iphdroff;
 
 	if (maniptype == NF_NAT_MANIP_SRC) {
+    printk(KERN_INFO "Going to change iph->saddr in nf_nat_ipv4_manip_pkt\n");
 		csum_replace4(&iph->check, iph->saddr, target->src.u3.ip);
 		iph->saddr = target->src.u3.ip;
 	} else {
+    printk(KERN_INFO "Going to change iph->daddr in nf_nat_ipv4_manip_pkt\n");
 		csum_replace4(&iph->check, iph->daddr, target->dst.u3.ip);
 		iph->daddr = target->dst.u3.ip;
 	}
