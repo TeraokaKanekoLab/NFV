@@ -35,6 +35,7 @@ extern bool udp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern bool tcp_mt(const struct sk_buff *skb, struct xt_action_param *par);
 extern struct list_head target_head;
 extern unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state);
+extern unsigned int nf_log_func(struct sk_buff *skb, const struct nf_hook_state *state);
 
 struct sock *nl_sk = NULL;
 
@@ -360,7 +361,8 @@ static void init_rule(struct sk_buff *skb)
   net = current->nsproxy->net_ns;
   printk(KERN_INFO "ns_common's inum is %u (in set_rule module)\n", net->ns.inum);
 
-  register_nf_target(nf_nat_func, -200, "NAT");
+  register_nf_target(nf_log_func, -200, "LOG");
+  register_nf_target(nf_nat_func, -100, "NAT");
 
   if ((err = set_filter_rule2(net)) < 0) {
     printk(KERN_ERR "Could not register filter rule\n");
