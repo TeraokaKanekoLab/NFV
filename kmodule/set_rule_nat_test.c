@@ -232,7 +232,8 @@ int set_filter_rule2(struct net *net)
   size_ipt_udp = IPT_ALIGN(sizeof(struct ipt_udp));
   size_ipt_tcp = IPT_ALIGN(sizeof(struct ipt_tcp));
 
-  total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp + size_ipt_entry_target;
+  //total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp + size_ipt_entry_target;
+  total_length = size_ipt_entry + size_ipt_entry_match + size_ipt_udp + size_ipt_entry_target;
   printk(KERN_INFO "total_length is %d\n", total_length);
 
   table = net->ipv4.iptable_filter;
@@ -251,7 +252,8 @@ int set_filter_rule2(struct net *net)
   }
   printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
 
-  e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp;
+  //e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_tcp;
+  e->target_offset = size_ipt_entry + size_ipt_entry_match + size_ipt_udp;
   e->next_offset = total_length;
 
   /* Set matching rules: "-s 156.145.1.3. -d 168.200.1.9" */
@@ -263,20 +265,20 @@ int set_filter_rule2(struct net *net)
   //e->ip.dmsk.s_addr= in_aton("192.168.122.168"); 
   //e->ip.dmsk.s_addr= in_aton("10.10.9.4"); 
   e->ip.dmsk.s_addr= in_aton("0.0.0.0"); 
-  e->ip.proto = IPPROTO_TCP;
+  e->ip.proto = IPPROTO_UDP;
   e->ip.invflags = 0;
   e->nfcache = 0;
   strcpy(e->ip.iniface, "ens3");
   strcpy(e->ip.outiface, "ens3");
 
-  /* Set TCP protocol match rules */
+  /* Set TCP protocol match rules 
   match_proto = (struct ipt_entry_match *)e->elems;
   match_proto->u.match_size = size_ipt_entry_match + size_ipt_tcp;
-  strcpy(match_proto->u.user.name, "tcp");
-  match_proto->u.kernel.match->match = tcp_mt;
-  printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, tcp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); 
+  strcpy(match_proto->u.user.name, "udp");
+  match_proto->u.kernel.match->match = udp_mt;
+  printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, tcp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); */
 
-  /* TCP match extenstion */
+  /* TCP match extenstion 
   tcpinfo = (struct ipt_tcp *)match_proto->data;
   tcpinfo->spts[0] = ntohs(0);
   tcpinfo->spts[1] = ntohs(0xE7); 
@@ -284,10 +286,25 @@ int set_filter_rule2(struct net *net)
   tcpinfo->dpts[1] = ntohs(0x1c8);
   tcpinfo->flg_mask = 0;
   tcpinfo->flg_cmp = 0;
-  tcpinfo->invflags =0;
+  tcpinfo->invflags =0; */
+
+  /* Set UDP protocol match rules */
+  match_proto = (struct ipt_entry_match *)e->elems;
+  match_proto->u.match_size = size_ipt_entry_match + size_ipt_udp;
+  strcpy(match_proto->u.user.name, "udp");
+  match_proto->u.kernel.match->match = udp_mt;
+  printk(KERN_INFO "address of match_proto (e->elems) is 0x%08lx, udp_mt is 0x%08lx\n", (ulong)match_proto, (ulong)(match_proto->u.kernel.match->match)); 
+
+  /* UDP match extenstion */
+  udpinfo = (struct ipt_udp *)match_proto->data;
+  udpinfo->spts[0] = ntohs(0);
+  udpinfo->spts[1] = ntohs(0xE7); 
+  udpinfo->dpts[0] = ntohs(0);
+  udpinfo->dpts[1] = ntohs(0x1c8);
 
   /* ipt_entry_target struct */
-  target = (struct ipt_entry_target *)((void *)e + size_ipt_entry + size_ipt_entry_match + size_ipt_tcp);
+//  target = (struct ipt_entry_target *)((void *)e + size_ipt_entry + size_ipt_entry_match + size_ipt_tcp);
+  target = (struct ipt_entry_target *)((void *)e + size_ipt_entry + size_ipt_entry_match + size_ipt_udp);
   printk(KERN_INFO "address of e->elems is 0x%08lx\n", (ulong)e->elems);
   printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)target);
   target->u.target_size = size_ipt_entry_target;

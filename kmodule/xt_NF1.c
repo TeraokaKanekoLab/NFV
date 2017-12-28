@@ -8,7 +8,6 @@
 unsigned int nf1_func(struct sk_buff *skb)
 {
   printk(KERN_INFO "This is NF1\n");
-  //return 0;
   return 1;
 }
 EXPORT_SYMBOL(nf1_func);

@@ -30,6 +30,7 @@
 extern const struct nf_nat_l4proto nf_nat_l4proto_icmp;
 static const struct nf_nat_l3proto nf_nat_l3proto_ipv4;
 extern unsigned int nf_nat_setup_info(struct nf_conn *ct, const struct nf_nat_range *range, enum nf_nat_manip_type maniptype);
+extern __be32 in_aton(const char *str);
 
 static void xt_nat_convert_range(struct nf_nat_range *dst, const struct nf_nat_ipv4_range *src)
 {
@@ -285,6 +286,7 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
 	enum nf_nat_manip_type maniptype = HOOK2MANIP(state->hook);
   unsigned int ret;
   struct nf_nat_range range;
+  struct iphdr *iph;
 
 	/* We never see fragments: conntrack defrags on pre-routing
 	 * and local-out, and nf_nat_out protects post-routing.
@@ -338,8 +340,8 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
 			unsigned int ret;
 
       printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
-			//ret = do_chain(priv, skb, state, ct);
-      /* NAT target */
+
+      /* NAT DST target */
       xt_nat_convert_range(&range, &mr->range[0]);
       printk(KERN_INFO "xt_nat_convert_range is finished\n");
       ret = nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
