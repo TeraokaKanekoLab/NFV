@@ -12,7 +12,7 @@
 extern __be32 in_aton(const char *str);
 
 unsigned int dns1, dns2, ntp1, ntp2;
-unsigned int dns1_th = 83, ntp1_th = 83;
+unsigned int dns1_th = 83333, ntp1_th = 83333;
 struct timespec start_time_dns, start_time_ntp;
 unsigned int next_verdict_dns, next_verdict_ntp, verdict_dns, verdict_ntp;
 __be32 ipaddr1;
@@ -46,17 +46,21 @@ unsigned int nf_log_func(struct sk_buff *skb, const struct nf_hook_state *state)
   /* If UDP protocol */
   if (proto == 0x11) { 
     getnstimeofday(&curr_time);
+    printk(KERN_INFO "curr_time: %ld", curr_time.tv_sec);
     if (udp_dport == udp_proto_dns) {
       printk(KERN_INFO "UDP/DNS\n");
       if (iph->saddr == ipaddr1) {
         printk(KERN_INFO "Traffic from 10.10.9.1\n");
         dns1++;
-        diff = timespec_sub(curr_time, start_time_dns);
-        if (diff.tv_sec < 30) {
+//        diff = timespec_sub(curr_time, start_time_dns);
+        diff.tv_sec = curr_time.tv_sec - start_time_dns.tv_sec;
+        printk(KERN_INFO "diff: %ld", diff.tv_sec);
+        if (diff.tv_sec < 10) {
           if (dns1 > dns1_th) {
             printk(KERN_INFO "next_verdict_dns == NF_DROP\n");
             next_verdict_dns = NF_DROP;
           } else {
+            printk(KERN_INFO "next_verdict_dns == NF_ACCEPT\n");
             next_verdict_dns = NF_ACCEPT;
           }
           return verdict_dns;
@@ -74,11 +78,12 @@ unsigned int nf_log_func(struct sk_buff *skb, const struct nf_hook_state *state)
         printk(KERN_INFO "Traffic from 10.10.9.1\n");
         ntp1++;
         diff = timespec_sub(curr_time, start_time_ntp);
-        if (diff.tv_sec < 30) {
+        if (diff.tv_sec < 10) {
           if (ntp1 > ntp1_th) {
             printk(KERN_INFO "next_verdict_ntp == NF_DROP\n");
             next_verdict_ntp = NF_DROP;
           } else {
+            printk(KERN_INFO "next_verdict_dns == NF_ACCEPT\n");
             next_verdict_ntp = NF_ACCEPT;
           }
           return verdict_ntp;
@@ -122,6 +127,7 @@ static int __init nf0_tg_init(void)
   getnstimeofday(&start_time_dns);
   getnstimeofday(&start_time_ntp);
 
+  printk(KERN_INFO "start_time_dns: %ld", start_time_dns.tv_sec);
   return 0;
 }
 
