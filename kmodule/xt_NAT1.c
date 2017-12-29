@@ -13,7 +13,7 @@
 #include <net/netfilter/nf_nat_core.h>
 #include <net/netfilter/nf_nat_l3proto.h>
 
-struct nf_nat_ipv4_multi_range_compat *mr;
+struct nf_nat_ipv4_multi_range_compat *mr, *mr1;
 
 static const struct xt_table nf_nat_ipv4_table = {
   .name   = "nat",
@@ -26,7 +26,7 @@ static const struct xt_table nf_nat_ipv4_table = {
   .af   = NFPROTO_IPV4,
 };
 extern unsigned int iptable_nat_ipv4_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
-extern unsigned int nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb, const struct nf_hook_state *state, struct nf_nat_ipv4_multi_range_compat *mr);
+extern unsigned int nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb, const struct nf_hook_state *state, struct nf_nat_ipv4_multi_range_compat *mr, struct nf_nat_ipv4_multi_range_compat *mr1);
 extern __be32 in_aton(const char *str);
 
 unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state)
@@ -36,7 +36,7 @@ unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state)
   //ret = iptable_nat_ipv4_in(NULL, skb, state, mr);
   //ret = iptable_nat_ipv4_fn(NULL, skb, state, iptable_nat_do_chain, mr);
   //ret = ipt_do_table(skb, state, state->net->ipv4.nat_table);
-  ret = nf_nat_ipv4_fn1(NULL, skb, state, mr);
+  ret = nf_nat_ipv4_fn1(NULL, skb, state, mr, mr1);
   return ret;
 }
 EXPORT_SYMBOL(nf_nat_func);
@@ -46,17 +46,25 @@ static int __init nf_nat_init(void)
   printk(KERN_INFO "Kernel moduel NAT is inserted\n");
   
   mr = kmalloc(sizeof(struct nf_nat_ipv4_multi_range_compat), GFP_KERNEL);
-  if (mr == NULL) {
+  mr1 = kmalloc(sizeof(struct nf_nat_ipv4_multi_range_compat), GFP_KERNEL);
+  if (mr == NULL || mr1 == NULL) {
     printk(KERN_INFO "kmalloc failed: mr is NULL\n");
     return -1;
   }
 
-  /* target rule for nat (DST) */
+  /* target rule for nat (DST: 10.10.9.4) */
   mr->range[0].min_ip = in_aton("10.10.9.4");
   mr->range[0].max_ip = in_aton("10.10.9.4");
   mr->range[0].min.all = ntohs(0xc3c8);
   mr->range[0].max.all = ntohs(0xc3c8);
   mr->range[0].flags = NF_NAT_RANGE_MAP_IPS;
+
+  /* target rule for nat (DST: 10.10.9.6) */
+  mr1->range[0].min_ip = in_aton("10.10.9.6");
+  mr1->range[0].max_ip = in_aton("10.10.9.6");
+  mr1->range[0].min.all = ntohs(0xc3c8);
+  mr1->range[0].max.all = ntohs(0xc3c8);
+  mr1->range[0].flags = NF_NAT_RANGE_MAP_IPS;
 
   return 0;
 }

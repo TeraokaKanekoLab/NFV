@@ -277,7 +277,7 @@ EXPORT_SYMBOL_GPL(nf_nat_icmp_reply_translation);
 unsigned int
 nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
 	       const struct nf_hook_state *state,
-	       struct nf_nat_ipv4_multi_range_compat *mr)
+	       struct nf_nat_ipv4_multi_range_compat *mr, struct nf_nat_ipv4_multi_range_compat *mr1)
 {
 	struct nf_conn *ct;
 	enum ip_conntrack_info ctinfo;
@@ -287,6 +287,10 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
   unsigned int ret;
   struct nf_nat_range range;
   struct iphdr *iph;
+  __be32 ipaddr1;
+  __be32 ipaddr2;
+  unsigned int hdroff;
+  struct udphdr *hdr;
 
 	/* We never see fragments: conntrack defrags on pre-routing
 	 * and local-out, and nf_nat_out protects post-routing.
@@ -341,11 +345,21 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
 
       printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
 
-      /* NAT DST target */
-      xt_nat_convert_range(&range, &mr->range[0]);
-      printk(KERN_INFO "xt_nat_convert_range is finished\n");
-      ret = nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
-      printk(KERN_INFO "nf_nat_setup_info is finished\n");
+      iph = (void *)skb->data;
+      hdroff = iph->ihl * 4;
+      hdr = (struct udphdr *)(skb->data + hdroff);
+
+      if (hdr->dest == ntohs(0x35)) {
+        /* NAT DST target (to 10.10.9.4) */
+        printk(KERN_INFO "Lead traffic to 10.10.9.4\n");
+        xt_nat_convert_range(&range, &mr->range[0]);
+        ret = nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
+      } else if (hdr->dest == ntohs(0x7b)) {
+        /* NAT DST target (to 10.10.9.6) */
+        printk(KERN_INFO "Lead traffic to 10.10.9.6\n");
+        xt_nat_convert_range(&range, &mr1->range[0]);
+        ret = nf_nat_setup_info(ct, &range, NF_NAT_MANIP_DST);
+      }
 
 			if (ret != NF_ACCEPT) {
         printk(KERN_INFO "ret was not ACCEPT\n");
@@ -399,7 +413,7 @@ nf_nat_ipv4_in(void *priv, struct sk_buff *skb,
 	unsigned int ret;
 	__be32 daddr = ip_hdr(skb)->daddr;
 
-	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain);
+	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain, NULL);
 	if (ret != NF_DROP && ret != NF_STOLEN &&
 	    daddr != ip_hdr(skb)->daddr)
 		skb_dst_drop(skb);
@@ -428,7 +442,7 @@ nf_nat_ipv4_out(void *priv, struct sk_buff *skb,
 	    ip_hdrlen(skb) < sizeof(struct iphdr))
 		return NF_ACCEPT;
 
-	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain);
+	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain, NULL);
 #ifdef CONFIG_XFRM
 	if (ret != NF_DROP && ret != NF_STOLEN &&
 	    !(IPCB(skb)->flags & IPSKB_XFRM_TRANSFORMED) &&
@@ -468,7 +482,7 @@ nf_nat_ipv4_local_fn(void *priv, struct sk_buff *skb,
 	    ip_hdrlen(skb) < sizeof(struct iphdr))
 		return NF_ACCEPT;
 
-	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain);
+	ret = nf_nat_ipv4_fn1(priv, skb, state, do_chain, NULL);
 	if (ret != NF_DROP && ret != NF_STOLEN &&
 	    (ct = nf_ct_get(skb, &ctinfo)) != NULL) {
 		enum ip_conntrack_dir dir = CTINFO2DIR(ctinfo);
