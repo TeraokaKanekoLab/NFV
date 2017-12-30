@@ -64,7 +64,7 @@ static unsigned int ipv4_conntrack_defrag(void *priv,
 					  struct sk_buff *skb,
 					  const struct nf_hook_state *state)
 {
-	printk(KERN_INFO "CONNTRACK DEFRAG\n");
+	//printk(KERN_INFO "CONNTRACK DEFRAG\n");
 	struct sock *sk = skb->sk;
 
 	if (sk && sk_fullsock(sk) && (sk->sk_family == PF_INET) &&

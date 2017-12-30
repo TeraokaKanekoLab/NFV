@@ -103,7 +103,7 @@ ip_packet_match(const struct iphdr *ip,
 		  IPT_INV_SRCIP) ||
 	    FWINV((ip->daddr&ipinfo->dmsk.s_addr) != ipinfo->dst.s_addr,
 		  IPT_INV_DSTIP)) {
-		printk(KERN_INFO "Source or dest mismatch.\n");
+		//printk(KERN_INFO "Source or dest mismatch.\n");
 
 		/* printk(KERN_INFO "SKB's SRC: %pI4. Rule's Mask: %pI4. Rule's SRC: %pI4.%s\n",
 			&ip->saddr, &ipinfo->smsk.s_addr, &ipinfo->src.s_addr,
@@ -137,7 +137,7 @@ ip_packet_match(const struct iphdr *ip,
 	/* Check specific protocol */
 	if (ipinfo->proto &&
 	    FWINV(ip->protocol != ipinfo->proto, IPT_INV_PROTO)) {
-		printk(KERN_INFO "Packet protocol %hi does not match %hi.%s\n",
+		//printk(KERN_INFO "Packet protocol %hi does not match %hi.%s\n",
 			ip->protocol, ipinfo->proto,
 			ipinfo->invflags & IPT_INV_PROTO ? " (INV)" : "");
 		return false;
@@ -324,8 +324,8 @@ ipt_do_table(struct sk_buff *skb,
   struct net *net;
 
   net = state->net;
-  printk(KERN_INFO "hook is %u\n", hook);
-  printk(KERN_INFO "ns_common's inum is %u\n", net->ns.inum);
+  //printk(KERN_INFO "hook is %u\n", hook);
+  //printk(KERN_INFO "ns_common's inum is %u\n", net->ns.inum);
 
 	/* Initialization */
 	stackidx = 0;
@@ -360,7 +360,7 @@ ipt_do_table(struct sk_buff *skb,
 	table_base = private->entries;
 	jumpstack  = (struct ipt_entry **)private->jumpstack[cpu];
 
-  printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
+  //printk(KERN_INFO "address of table_base is 0x%08lx\n", (ulong)table_base);
 
 	/* Switch to alternate jumpstack if we're being invoked via TEE.
 	 * TEE issues XT_CONTINUE verdict on original skb so we must not
@@ -373,7 +373,7 @@ ipt_do_table(struct sk_buff *skb,
 		jumpstack += private->stacksize * __this_cpu_read(nf_skb_duplicated);
 
 	e = get_entry(table_base, private->hook_entry[hook]);
- 	printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
+ 	//printk(KERN_INFO "address of ipt_entry e is 0x%08lx\n", (ulong)e);
 	/*
 	printk(KERN_INFO "e->target_offset is %u, e->next_offset is %u\n", e->target_offset, e->next_offset);
  	printk(KERN_INFO "address of target is 0x%08lx\n", (ulong)(e + e->target_offset));
@@ -391,15 +391,11 @@ ipt_do_table(struct sk_buff *skb,
 		IP_NF_ASSERT(e);
 		if (!ip_packet_match(ip, indev, outdev,
 		    &e->ip, acpar.fragoff)) {
-			printk(KERN_INFO "No match in ipt_entry(ip)\n");
+			//printk(KERN_INFO "No match in ipt_entry(ip)\n");
  no_match:
 			e = ipt_next_entry(e);
-			printk(KERN_INFO "Go to next ipt_entry\n");
- 			printk(KERN_INFO "address of next ipt_entry e is 0x%08lx\n", (ulong)e);
-			/*
-			printk(KERN_INFO "e->target_offset is %u, e->next_offset is %u\n", e->target_offset, e->next_offset);
- 			printk(KERN_INFO "address of next target is 0x%08lx\n", (ulong)(e + e->target_offset));
- 			printk(KERN_INFO "address of next's next ipt_entry is 0x%08lx\n", (ulong)(e + e->next_offset)); */
+			//printk(KERN_INFO "Go to next ipt_entry\n");
+ 			//printk(KERN_INFO "address of next ipt_entry e is 0x%08lx\n", (ulong)e);
 			continue;
 		}
 
@@ -407,8 +403,8 @@ ipt_do_table(struct sk_buff *skb,
 			acpar.match     = ematch->u.kernel.match;
 			acpar.matchinfo = ematch->data;
 			if (!acpar.match->match(skb, &acpar)) {
-				printk(KERN_INFO "No match in xt_entry_match\n");
-				printk(KERN_INFO "So, go to next ipt_entry\n");
+				//printk(KERN_INFO "No match in xt_entry_match\n");
+				//printk(KERN_INFO "So, go to next ipt_entry\n");
 				goto no_match;
 			}
 		}
@@ -417,9 +413,9 @@ ipt_do_table(struct sk_buff *skb,
 		ADD_COUNTER(*counter, skb->len, 1);
 
 		t = ipt_get_target(e);
- 		printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)t); 
+ 		//printk(KERN_INFO "address of ipt_entry_target t is 0x%08lx\n", (ulong)t); 
 		/* IP_NF_ASSERT(t->u.kernel.target); */
-		printk(KERN_INFO "A rule (5 tuple) matched!\n");
+		//printk(KERN_INFO "A rule (5 tuple) matched!\n");
 
 #if IS_ENABLED(CONFIG_NETFILTER_XT_TARGET_TRACE)
     /* The packet is traced: log it */
@@ -433,31 +429,30 @@ ipt_do_table(struct sk_buff *skb,
     if (!t) {
       printk(KERN_WARNING "ipt_entry_target t is null\n");
     } else if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
-      printk(KERN_INFO "Entering nf target iteration loop\n");
+      //printk(KERN_INFO "Entering nf target iteration loop\n");
       /* iterate all the nf targets in the list */
       i = target_head.next;
       do {
         t_verdict = ((struct nf_target *)i)->nf_func(skb, state);
-        printk(KERN_INFO "t_verdict is %u\n", t_verdict);
+        //printk(KERN_INFO "t_verdict is %u\n", t_verdict);
         if (t_verdict == NF_DROP) {
           break;
         } else {
           i = i->next;
         }
       } while (i != &target_head);
-      printk(KERN_INFO "end of the loop\n");
     } else if (!t->u.kernel.target->target) { /* Standard target? */
-      printk(KERN_INFO "Entering standard target iteration loop......\n");
+      //printk(KERN_INFO "Entering standard target iteration loop\n");
       int v;
 
       v = ((struct xt_standard_target *)t)->verdict;
-      printk(KERN_INFO "standard verdict is %d\n", v);
-      printk(KERN_INFO "standard verdict (u) is %u\n", v);
+      //printk(KERN_INFO "standard verdict is %d\n", v);
+      //printk(KERN_INFO "standard verdict (u) is %u\n", v);
       if (v < 0) {
         /* Pop from stack? */
         if (v != XT_RETURN) {
           verdict = (unsigned int)(-v) - 1;
-          printk(KERN_INFO "verdict is %u, and break\n", verdict);
+          //printk(KERN_INFO "verdict is %u, and break\n", verdict);
           break;
         }
         if (stackidx == 0) {
@@ -490,10 +485,10 @@ ipt_do_table(struct sk_buff *skb,
       verdict = 0;
     } else if (t->u.user.name && (strncmp(t->u.user.name, "NFC", 3) == 0)) {
       verdict = t_verdict; 
-      printk(KERN_INFO "t_verdict %d will get returned\n", verdict);
+      //printk(KERN_INFO "t_verdict %d will get returned\n", verdict);
       break;
     } else {
-      printk(KERN_INFO "execution target..\n");
+      //printk(KERN_INFO "execution target..\n");
       acpar.target   = t->u.kernel.target;
       acpar.targinfo = t->data;
 
@@ -518,7 +513,7 @@ ipt_do_table(struct sk_buff *skb,
 	if (acpar.hotdrop) {
 		return NF_DROP;
 	} else {
-		printk(KERN_INFO "verdict %d will get returned\n", verdict); 
+		//printk(KERN_INFO "verdict %d will get returned\n", verdict); 
 		return verdict;
 	}
 #endif

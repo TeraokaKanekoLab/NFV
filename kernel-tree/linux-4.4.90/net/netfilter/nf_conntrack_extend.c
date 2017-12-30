@@ -88,12 +88,12 @@ void *__nf_ct_ext_add_length(struct nf_conn *ct, enum nf_ct_ext_id id,
 
 	old = ct->ext;
 	if (!old) {
-    printk(KERN_INFO "Going to create nat extention\n");
+     	//printk(KERN_INFO "Going to create nat extention\n");
 		return nf_ct_ext_create(&ct->ext, id, var_alloc_len, gfp);
   }
 
 	if (__nf_ct_ext_exist(old, id)) {
-    printk(KERN_INFO "__nf_ct_ext_exist(odl, id)\n");
+    	//printk(KERN_INFO "__nf_ct_ext_exist(odl, id)\n");
 		return NULL;
   }
 
@@ -101,7 +101,7 @@ void *__nf_ct_ext_add_length(struct nf_conn *ct, enum nf_ct_ext_id id,
 	t = rcu_dereference(nf_ct_ext_types[id]);
 	if (!t) {
 		rcu_read_unlock();
-    printk(KERN_INFO "rcu_dereference(nf_ct_ext_types[id])\n");
+    	//printk(KERN_INFO "rcu_dereference(nf_ct_ext_types[id])\n");
 		return NULL;
 	}
 
@@ -111,14 +111,13 @@ void *__nf_ct_ext_add_length(struct nf_conn *ct, enum nf_ct_ext_id id,
 
 	new = __krealloc(old, newlen, gfp);
 	if (!new) {
-    printk(KERN_INFO "cannot allocate new\n");
+    	printk(KERN_INFO "cannot allocate new\n");
 		return NULL;
   }
 
 	if (new != old) {
-    printk(KERN_INFO "new != old\n");
+    	//printk(KERN_INFO "new != old\n");
 		for (i = 0; i < NF_CT_EXT_NUM; i++) {
-      printk(KERN_INFO "inside for\n");
 			if (!__nf_ct_ext_exist(old, i))
 				continue;
 

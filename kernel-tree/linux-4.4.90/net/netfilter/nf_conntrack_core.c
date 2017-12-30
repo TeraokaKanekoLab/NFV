@@ -1037,7 +1037,7 @@ resolve_normal_ct(struct net *net, struct nf_conn *tmpl,
 	if (!nf_ct_get_tuple(skb, skb_network_offset(skb),
 			     dataoff, l3num, protonum, net, &tuple, l3proto,
 			     l4proto)) {
-		printk(KERN_INFO "resolve_normal_ct: Can't get tuple\n");
+		//printk(KERN_INFO "resolve_normal_ct: Can't get tuple\n");
 		return NULL;
 	}
 
@@ -1053,7 +1053,7 @@ resolve_normal_ct(struct net *net, struct nf_conn *tmpl,
 			return NULL;
     }
 		if (IS_ERR(h)) {
-		  printk(KERN_INFO "Tuple hash h is error\n");
+		  //printk(KERN_INFO "Tuple hash h is error\n");
 			return (void *)h;
     }
 	}
@@ -1061,31 +1061,31 @@ resolve_normal_ct(struct net *net, struct nf_conn *tmpl,
 
 	/* It exists; we have (non-exclusive) reference. */
 	if (NF_CT_DIRECTION(h) == IP_CT_DIR_REPLY) {
-		printk(KERN_INFO "Reply has been seen 1064\n");
+		//printk(KERN_INFO "Reply has been seen 1064\n");
 		*ctinfo = IP_CT_ESTABLISHED_REPLY;
 		/* Please set reply bit if this packet OK */
 		*set_reply = 1;
 	} else {
 		/* Once we've had two way comms, always ESTABLISHED. */
 		if (test_bit(IPS_SEEN_REPLY_BIT, &ct->status)) {
-		  printk(KERN_INFO "IP_CT_ESTABLISHED 1071\n");
+		  //printk(KERN_INFO "IP_CT_ESTABLISHED 1071\n");
 			pr_debug("nf_conntrack_in: normal packet for %p\n", ct);
 			*ctinfo = IP_CT_ESTABLISHED;
 		} else if (test_bit(IPS_EXPECTED_BIT, &ct->status)) {
-		  printk(KERN_INFO "IP_CT_RELATED 1075\n");
+		  //printk(KERN_INFO "IP_CT_RELATED 1075\n");
 			pr_debug("nf_conntrack_in: related packet for %p\n",
 				 ct);
 			*ctinfo = IP_CT_RELATED;
 		} else {
 			pr_debug("nf_conntrack_in: new packet for %p\n", ct);
-		  printk(KERN_INFO "IP_CT_NEW 1081\n");
+		  //printk(KERN_INFO "IP_CT_NEW 1081\n");
 			*ctinfo = IP_CT_NEW;
 		}
 		*set_reply = 0;
 	}
 	skb->nfct = &ct->ct_general;
 	skb->nfctinfo = *ctinfo;
-	printk(KERN_INFO "Resolve_normal_ct is over\n");
+	//printk(KERN_INFO "Resolve_normal_ct is over\n");
 	return ct;
 }
 
@@ -1149,7 +1149,7 @@ nf_conntrack_in(struct net *net, u_int8_t pf, unsigned int hooknum,
 	if (!ct) {
 		/* Not valid part of a connection */
 		NF_CT_STAT_INC_ATOMIC(net, invalid);
-    printk(KERN_INFO "ct is null in nf_conntrack_in\n");
+    	//printk(KERN_INFO "ct is null in nf_conntrack_in\n");
 		ret = NF_ACCEPT;
 		goto out;
 	}
@@ -1194,7 +1194,7 @@ out:
 			nf_ct_put(tmpl);
 	}
 
-  printk(KERN_INFO "ret is %d in nf_conntrack_in\n", ret);
+  //printk(KERN_INFO "ret is %d in nf_conntrack_in\n", ret);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_in);
