@@ -247,7 +247,7 @@ find_best_ips_proto(const struct nf_conntrack_zone *zone,
 
 	/* Fast path: only one choice. */
 	if (nf_inet_addr_cmp(&range->min_addr, &range->max_addr)) {
-    printk(KERN_INFO "only one choice\n");
+    //printk(KERN_INFO "only one choice\n");
 		*var_ipp = range->min_addr;
 		return;
 	}
@@ -290,7 +290,7 @@ find_best_ips_proto(const struct nf_conntrack_zone *zone,
 		if (!(range->flags & NF_NAT_RANGE_PERSISTENT))
 			j ^= (__force u32)tuple->dst.u3.all[i];
 	}
-  printk(KERN_INFO "find_ips_best_proto is over\n");
+  //printk(KERN_INFO "find_ips_best_proto is over\n");
 }
 
 /* Manipulate the tuple into the range given. For NF_INET_POST_ROUTING,
@@ -332,14 +332,14 @@ get_unique_tuple(struct nf_conntrack_tuple *tuple,
     if (in_range(l3proto, l4proto, orig_tuple, range)) {
       if (!nf_nat_used_tuple(orig_tuple, ct)) {
         *tuple = *orig_tuple;
-        printk(KERN_INFO "1st if in get_unique_tuple\n");
+        //printk(KERN_INFO "1st if in get_unique_tuple\n");
         goto out;
       }
     } else if (find_appropriate_src(net, zone, l3proto, l4proto,
           orig_tuple, tuple, range)) {
       pr_debug("get_unique_tuple: Found current src map\n");
       if (!nf_nat_used_tuple(tuple, ct)) {
-        printk(KERN_INFO "2nd if in get_unique_tuple\n");
+        //printk(KERN_INFO "2nd if in get_unique_tuple\n");
         goto out;
       }
     }
@@ -361,16 +361,16 @@ get_unique_tuple(struct nf_conntrack_tuple *tuple,
             &range->max_proto) &&
           (range->min_proto.all == range->max_proto.all ||
            !nf_nat_used_tuple(tuple, ct))) {
-        printk(KERN_INFO "3rd if in get_unique_tuple\n");
+        //printk(KERN_INFO "3rd if in get_unique_tuple\n");
         goto out;
       }
     } else if (!nf_nat_used_tuple(tuple, ct)) {
-      printk(KERN_INFO "4th if in get_unique_tuple\n");
+      //printk(KERN_INFO "4th if in get_unique_tuple\n");
       goto out;
 		}
 	}
 
-  printk(KERN_INFO "Before l4proto->unique_tuple\n");
+  //printk(KERN_INFO "Before l4proto->unique_tuple\n");
 	/* Last change: get protocol to try to obtain unique tuple. */
 	l4proto->unique_tuple(l3proto, tuple, range, maniptype, ct);
 out:
@@ -399,11 +399,11 @@ nf_nat_setup_info(struct nf_conn *ct,
 	struct nf_conntrack_tuple curr_tuple, new_tuple;
 	struct nf_conn_nat *nat;
 
-  printk(KERN_INFO "nf_nat_setup_info is called\n");
+  //printk(KERN_INFO "nf_nat_setup_info is called\n");
 	/* nat helper or nfctnetlink also setup binding */
 	nat = nf_ct_nat_ext_add(ct);
 	if (nat == NULL) {
-    printk(KERN_INFO "nf_ct_nat_ext_add returns NULL\n");
+    //printk(KERN_INFO "nf_ct_nat_ext_add returns NULL\n");
 		return NF_ACCEPT;
   }
 
@@ -422,7 +422,7 @@ nf_nat_setup_info(struct nf_conn *ct,
 	get_unique_tuple(&new_tuple, &curr_tuple, range, ct, maniptype);
 
 	if (!nf_ct_tuple_equal(&new_tuple, &curr_tuple)) {
-    printk(KERN_INFO "!nf_ct_tuple_equal\n");
+    //printk(KERN_INFO "!nf_ct_tuple_equal\n");
 		struct nf_conntrack_tuple reply;
 
 		/* Alter conntrack table so will recognize replies. */
@@ -431,11 +431,11 @@ nf_nat_setup_info(struct nf_conn *ct,
 
 		/* Non-atomic: we own this at the moment. */
 		if (maniptype == NF_NAT_MANIP_SRC) {
-      printk(KERN_INFO "MANIP_SRC\n");
+      //printk(KERN_INFO "MANIP_SRC\n");
 			ct->status |= IPS_SRC_NAT;
     }
 		else {
-      printk(KERN_INFO "MANIP_DST\n");
+      //printk(KERN_INFO "MANIP_DST\n");
 			ct->status |= IPS_DST_NAT;
     }
 
@@ -444,7 +444,7 @@ nf_nat_setup_info(struct nf_conn *ct,
 	}
 
 	if (maniptype == NF_NAT_MANIP_SRC) {
-    printk(KERN_INFO "NF_NAT_MANIP_SRC\n");
+    //printk(KERN_INFO "NF_NAT_MANIP_SRC\n");
 		unsigned int srchash;
 
 		srchash = hash_by_src(net,
@@ -464,7 +464,7 @@ nf_nat_setup_info(struct nf_conn *ct,
 	else
 		ct->status |= IPS_SRC_NAT_DONE;
 
-  printk(KERN_INFO "nf_nat_setup_info is over\n");
+  //printk(KERN_INFO "nf_nat_setup_info is over\n");
 	return NF_ACCEPT;
 }
 EXPORT_SYMBOL(nf_nat_setup_info);
@@ -507,7 +507,6 @@ unsigned int nf_nat_packet(struct nf_conn *ct,
 	unsigned long statusbit;
 	enum nf_nat_manip_type mtype = HOOK2MANIP(hooknum);
 
-  printk(KERN_INFO "nf_nat_packet start\n");
 	if (mtype == NF_NAT_MANIP_SRC)
 		statusbit = IPS_SRC_NAT;
 	else
@@ -520,7 +519,7 @@ unsigned int nf_nat_packet(struct nf_conn *ct,
 	/* Non-atomic: these bits don't change. */
 	if (ct->status & statusbit) {
 		struct nf_conntrack_tuple target;
-    printk(KERN_INFO "ct->status & statusbit\n");
+    //printk(KERN_INFO "ct->status & statusbit\n");
 
 		/* We are aiming to look like inverse of other direction. */
 		nf_ct_invert_tuplepr(&target, &ct->tuplehash[!dir].tuple);
@@ -882,7 +881,7 @@ static int __init nf_nat_init(void)
 
 	ret = nf_ct_extend_register(&nat_extend);
 	if (ret < 0) {
-		printk(KERN_ERR "nf_nat_core: Unable to register extension\n");
+		//printk(KERN_ERR "nf_nat_core: Unable to register extension\n");
 		return ret;
 	}
 

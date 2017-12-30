@@ -34,7 +34,6 @@ extern __be32 in_aton(const char *str);
 
 static void xt_nat_convert_range(struct nf_nat_range *dst, const struct nf_nat_ipv4_range *src)
 {
-  printk(KERN_INFO "xt_nat_convert_range started \n");
   memset(&dst->min_addr, 0, sizeof(dst->min_addr));
   memset(&dst->max_addr, 0, sizeof(dst->max_addr));
 
@@ -43,7 +42,6 @@ static void xt_nat_convert_range(struct nf_nat_range *dst, const struct nf_nat_i
   dst->max_addr.ip = src->max_ip;
   dst->min_proto   = src->min;
   dst->max_proto   = src->max;
-  printk(KERN_INFO "xt_nat_convert_range is going to finish\n");
 }
 
 #ifdef CONFIG_XFRM
@@ -114,11 +112,11 @@ static bool nf_nat_ipv4_manip_pkt(struct sk_buff *skb,
 	iph = (void *)skb->data + iphdroff;
 
 	if (maniptype == NF_NAT_MANIP_SRC) {
-    printk(KERN_INFO "Going to change iph->saddr in nf_nat_ipv4_manip_pkt\n");
+    //printk(KERN_INFO "Going to change iph->saddr in nf_nat_ipv4_manip_pkt\n");
 		csum_replace4(&iph->check, iph->saddr, target->src.u3.ip);
 		iph->saddr = target->src.u3.ip;
 	} else {
-    printk(KERN_INFO "Going to change iph->daddr in nf_nat_ipv4_manip_pkt\n");
+    //printk(KERN_INFO "Going to change iph->daddr in nf_nat_ipv4_manip_pkt\n");
 		csum_replace4(&iph->check, iph->daddr, target->dst.u3.ip);
 		iph->daddr = target->dst.u3.ip;
 	}
@@ -322,10 +320,10 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
 
 	switch (ctinfo) {
 	case IP_CT_RELATED:
-      printk(KERN_INFO "IP_CT_RELATED_REPLAY\n");
+      //printk(KERN_INFO "IP_CT_RELATED_REPLAY\n");
       break;
 	case IP_CT_RELATED_REPLY:
-      printk(KERN_INFO "IP_CT_RELATED_REPLAY\n");
+      //printk(KERN_INFO "IP_CT_RELATED_REPLAY\n");
 		if (ip_hdr(skb)->protocol == IPPROTO_ICMP) {
 			if (!nf_nat_icmp_reply_translation(skb, ct, ctinfo,
 							   state->hook))
@@ -336,14 +334,14 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
     break;
 		/* Fall thru... (Only ICMPs can be IP_CT_IS_REPLY) */
 	case IP_CT_NEW:
-    printk(KERN_INFO "IP_CT_NEW\n");
+    //printk(KERN_INFO "IP_CT_NEW\n");
 		/* Seen it before?  This can happen for loopback, retrans,
 		 * or local packets.
 		 */
 		if (!nf_nat_initialized(ct, maniptype)) {
 			unsigned int ret;
 
-      printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
+      //printk(KERN_INFO "NEW : Going to check the NAT table! 323\n");
 
       iph = (void *)skb->data;
       hdroff = iph->ihl * 4;
@@ -362,7 +360,7 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
       }
 
 			if (ret != NF_ACCEPT) {
-        printk(KERN_INFO "ret was not ACCEPT\n");
+        //printk(KERN_INFO "ret was not ACCEPT\n");
 				return ret;
       }
 
@@ -371,7 +369,7 @@ nf_nat_ipv4_fn1(void *priv, struct sk_buff *skb,
 
 			ret = nf_nat_alloc_null_binding(ct, state->hook);
 			if (ret != NF_ACCEPT) {
-        printk(KERN_INFO "ret was not ACCEPT after nf_nat_alloc_null_binding\n");
+        //printk(KERN_INFO "ret was not ACCEPT after nf_nat_alloc_null_binding\n");
 				return ret;
       } 
 		} else {
