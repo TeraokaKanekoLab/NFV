@@ -32,7 +32,7 @@ extern __be32 in_aton(const char *str);
 unsigned int nf_nat_func(struct sk_buff *skb, const struct nf_hook_state *state)
 {
   int ret = 1;
-  printk(KERN_INFO "Starting NAT...\n");
+  //printk(KERN_INFO "Starting NAT...\n");
   //ret = iptable_nat_ipv4_in(NULL, skb, state, mr);
   //ret = iptable_nat_ipv4_fn(NULL, skb, state, iptable_nat_do_chain, mr);
   //ret = ipt_do_table(skb, state, state->net->ipv4.nat_table);

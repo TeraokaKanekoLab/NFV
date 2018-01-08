@@ -29,7 +29,7 @@ unsigned int nf_log_func(struct sk_buff *skb, const struct nf_hook_state *state)
   struct timespec curr_time, diff;
   unsigned int hdroff;
 
-  printk(KERN_INFO "This is LOG\n");
+  //printk(KERN_INFO "This is LOG\n");
 
   /* UDP protocol number of DNS, NTP */
   udp_proto_dns = ntohs(0x35);
@@ -46,26 +46,23 @@ unsigned int nf_log_func(struct sk_buff *skb, const struct nf_hook_state *state)
   /* If UDP protocol */
   if (proto == 0x11) { 
     getnstimeofday(&curr_time);
-    printk(KERN_INFO "curr_time: %ld", curr_time.tv_sec);
+    //printk(KERN_INFO "curr_time: %ld", curr_time.tv_sec);
     if (udp_dport == udp_proto_dns) {
-      printk(KERN_INFO "UDP/DNS\n");
+      //printk(KERN_INFO "UDP/DNS\n");
       if (iph->saddr == ipaddr1) {
-        printk(KERN_INFO "Traffic from 10.10.9.1\n");
         dns1++;
-//        diff = timespec_sub(curr_time, start_time_dns);
+        //diff = timespec_sub(curr_time, start_time_dns);
         diff.tv_sec = curr_time.tv_sec - start_time_dns.tv_sec;
-        printk(KERN_INFO "diff: %ld", diff.tv_sec);
         if (diff.tv_sec < 10) {
           if (dns1 > dns1_th) {
-            printk(KERN_INFO "next_verdict_dns == NF_DROP\n");
+            //printk(KERN_INFO "next_verdict_dns == NF_DROP\n");
             next_verdict_dns = NF_DROP;
           } else {
-            printk(KERN_INFO "next_verdict_dns == NF_ACCEPT\n");
+            //printk(KERN_INFO "next_verdict_dns == NF_ACCEPT\n");
             next_verdict_dns = NF_ACCEPT;
           }
           return verdict_dns;
         } else {
-          printk(KERN_INFO "Resetting start_time_dns\n");
           getnstimeofday(&start_time_dns);
           verdict_dns = next_verdict_dns;
           dns1 = 0;
@@ -73,22 +70,20 @@ unsigned int nf_log_func(struct sk_buff *skb, const struct nf_hook_state *state)
         }
       }
     } else if (udp_dport == udp_proto_ntp) {
-      printk(KERN_INFO "UDP/NTP\n");
+      //printk(KERN_INFO "UDP/NTP\n");
       if (iph->saddr == ipaddr1) {
-        printk(KERN_INFO "Traffic from 10.10.9.1\n");
         ntp1++;
         diff = timespec_sub(curr_time, start_time_ntp);
         if (diff.tv_sec < 10) {
           if (ntp1 > ntp1_th) {
-            printk(KERN_INFO "next_verdict_ntp == NF_DROP\n");
+            //printk(KERN_INFO "next_verdict_ntp == NF_DROP\n");
             next_verdict_ntp = NF_DROP;
           } else {
-            printk(KERN_INFO "next_verdict_dns == NF_ACCEPT\n");
+            //printk(KERN_INFO "next_verdict_dns == NF_ACCEPT\n");
             next_verdict_ntp = NF_ACCEPT;
           }
           return verdict_ntp;
         } else {
-          printk(KERN_INFO "Resetting start_time_ntp\n");
           getnstimeofday(&start_time_ntp);
           verdict_ntp = next_verdict_ntp;
           ntp1 = 0;
