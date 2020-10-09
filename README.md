@@ -2,7 +2,7 @@
 Kernel-based NFV Infrastracture 
 
 ### Modified Kernel
- - Placed under kernel-tree/linux-4.4.95/
+ - Placed under kernel-tree/linux-4.4.90/
  - Modification is especially added in /net/ipv4/netfilter/ip_tables.c
   
 ### Kernel modules
